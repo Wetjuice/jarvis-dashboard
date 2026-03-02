@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>JARVIS System Architecture</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0e17;--bg2:#111827;--border:#1e293b;--text:#e2e8f0;--text2:#94a3b8;
+  --gold:#f59e0b;--blue:#3b82f6;--green:#22c55e;--purple:#a855f7;--red:#ef4444;--grey:#94a3b8;
+  --sidebar:340px;
+}
+html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text)}
+#bg-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.15}
+#title-bar{position:fixed;top:0;left:0;right:0;z-index:100;height:56px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,rgba(10,14,23,.95),rgba(10,14,23,.7));backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+#title-bar h1{font-size:1.1rem;letter-spacing:.35em;font-weight:300;text-transform:uppercase;
+  background:linear-gradient(90deg,var(--gold),#fff,var(--gold));background-size:200% 100%;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:shimmer 6s linear infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+#title-bar .pulse{width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:12px;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 4px var(--green)}50%{opacity:.4;box-shadow:0 0 12px var(--green)}}
+#legend{position:fixed;bottom:16px;left:16px;z-index:90;background:rgba(17,24,39,.85);backdrop-filter:blur(8px);
+  border:1px solid var(--border);border-radius:10px;padding:14px 18px;font-size:.75rem}
+#legend h3{font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--text2);margin-bottom:8px}
+.legend-item{display:flex;align-items:center;gap:8px;margin:4px 0;color:var(--text2)}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+#graph{position:fixed;top:56px;left:0;right:0;bottom:0;z-index:1}
+#sidebar{position:fixed;top:56px;right:0;bottom:0;width:var(--sidebar);z-index:80;
+  background:rgba(17,24,39,.92);backdrop-filter:blur(16px);border-left:1px solid var(--border);
+  transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);overflow-y:auto;padding:0}
+#sidebar.open{transform:translateX(0)}
+#sidebar-close{position:absolute;top:12px;right:14px;background:none;border:none;color:var(--text2);font-size:1.3rem;cursor:pointer;z-index:2;line-height:1}
+#sidebar-close:hover{color:#fff}
+.sb-header{padding:24px 20px 16px;border-bottom:1px solid var(--border)}
+.sb-header .emoji{font-size:2rem;margin-bottom:6px}
+.sb-header h2{font-size:1.15rem;font-weight:600;margin:4px 0 2px}
+.sb-header .model{font-size:.75rem;color:var(--text2);font-family:'SF Mono',Consolas,monospace}
+.sb-section{padding:14px 20px;border-bottom:1px solid var(--border)}
+.sb-section h4{font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text2);margin-bottom:8px}
+.sb-section ul{list-style:none;padding:0}
+.sb-section li{font-size:.8rem;padding:3px 0;color:var(--text);display:flex;align-items:center;gap:6px}
+.sb-section li::before{content:'\203A';color:var(--text2);font-weight:bold}
+.sb-tag{display:inline-block;font-size:.65rem;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.08);color:var(--text2);margin:2px 2px 2px 0}
+.sb-description{font-size:.8rem;color:var(--text2);line-height:1.5}
+@media(max-width:640px){:root{--sidebar:100vw}#legend{bottom:8px;left:8px;padding:10px 14px;font-size:.65rem}}
+.tooltip{position:fixed;z-index:200;background:rgba(17,24,39,.95);border:1px solid var(--border);border-radius:8px;
+  padding:8px 12px;font-size:.75rem;pointer-events:none;opacity:0;transition:opacity .15s}
+</style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div id="title-bar"><div class="pulse"></div><h1>Jarvis System Architecture</h1></div>
+<div id="legend">
+  <h3>Node Types</h3>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div>Opus 4.6 Agent</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>Sonnet 4.5 Agent</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Haiku 4.5</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>Cron Job</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Telegram Topic</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--grey)"></div>External Service</div>
+</div>
+<svg id="graph"></svg>
+<div id="sidebar"><button id="sidebar-close">&times;</button><div id="sidebar-content"></div></div>
+<div class="tooltip" id="tooltip"></div>
+<script>
+const nodes=[
+  {id:'main',label:'Jarvis (Main)',type:'agent-opus',emoji:'\u{1F916}',model:'Opus 4.6',desc:'Default orchestrator. Handles conversations, heartbeats, task management, system stewardship.',workspace:'~/.openclaw/workspace',files:['MEMORY.md','AGENTS.md','SOUL.md','HEARTBEAT.md','TOOLS.md','SAFETY.md'],r:28},
+  {id:'daily-brief',label:'Jarvis Brief',type:'agent-sonnet',emoji:'\u{1F4F0}',model:'Sonnet 4.5',desc:'Research, evaluation, and delivery of daily intelligence briefing.',workspace:'~/.openclaw/workspace-daily-brief',files:['FORMAT-EMAIL.md','CONFIG.md','evaluator-prompt.md','briefs/'],r:22},
+  {id:'career-coach',label:'Jarvis Career',type:'agent-sonnet',emoji:'\u{1F4BC}',model:'Sonnet 4.5',desc:'Career strategy, job search, career intel.',workspace:'~/.openclaw/workspace-career-coach',files:['MIKE-BERMAN-PROFILE.md','architecture.md','job-recommendations.md'],r:22},
+  {id:'portfolio-builder',label:'Portfolio Builder',type:'agent-opus',emoji:'\u{1F3A8}',model:'Opus 4.6',desc:'Portfolio website development.',workspace:'~/.openclaw/workspace-portfolio-builder',files:['design-system.md','tech-stack.md','portfolio/BRIEF.md'],r:22},
+  {id:'real-estate',label:'Jarvis Realty',type:'agent-sonnet',emoji:'\u{1F3E0}',model:'Sonnet 4.5',desc:'Property intelligence briefs, open house research.',workspace:'~/.openclaw/workspace-real-estate',files:['AGENTS.md'],r:22},
+  {id:'heartbeat',label:'Heartbeat',type:'heartbeat',emoji:'\u{1F493}',model:'Haiku 4.5',desc:'Runs every 60 min (00:00-23:59 PST). 10-step monitoring pipeline.',schedule:'Every 60 min, 24/7',r:24,steps:['Time Gate','Load State','Email Check (50m)','Hardware Health (4h)','Disk Space (4h)','Todoist Check','Open House Detection','Memory Maintenance (72h)','Log Usage','Update State']},
+  {id:'cron-dream',label:'Dream Cycle',type:'cron',emoji:'\u{1F319}',schedule:'2 AM daily',agent:'main',r:14},
+  {id:'cron-repair',label:'Self-Repair',type:'cron',emoji:'\u{1F527}',schedule:'3 AM daily',agent:'default',r:14},
+  {id:'cron-initiative',label:'Nightly Initiative',type:'cron',emoji:'\u{1F4A1}',schedule:'4 AM daily (exact)',agent:'main',model:'Opus 4.6',r:14},
+  {id:'cron-initiative-delivery',label:'Initiative Delivery',type:'cron',emoji:'\u{1F4EC}',schedule:'6 AM daily',agent:'main',r:14},
+  {id:'cron-brief-research',label:'Brief Research',type:'cron',emoji:'\u{1F50D}',schedule:'6:30 AM daily',agent:'daily-brief',r:14},
+  {id:'cron-brief-eval',label:'Brief Evaluator',type:'cron',emoji:'\u{1F4CA}',schedule:'6:45 AM daily',agent:'daily-brief',r:14},
+  {id:'cron-brief-delivery',label:'Brief Delivery',type:'cron',emoji:'\u{1F4E8}',schedule:'7 AM daily',agent:'daily-brief',r:14},
+  {id:'cron-security-digest',label:'Security Digest',type:'cron',emoji:'\u{1F6E1}',schedule:'8 AM Mondays',agent:'main',r:14},
+  {id:'cron-security-scan',label:'Security Scan',type:'cron',emoji:'\u{1F512}',schedule:'9 AM Mondays',agent:'default',r:14},
+  {id:'cron-version',label:'Version Check',type:'cron',emoji:'\u{1F4E6}',schedule:'10 AM daily',agent:'main',r:14},
+  {id:'cron-improve',label:'Self-Improvement',type:'cron',emoji:'\u{1F9E0}',schedule:'2 PM Sundays',agent:'default',r:14},
+  {id:'tg-main',label:'Main',type:'telegram',emoji:'\u{1F4AC}',threadId:2,r:12},
+  {id:'tg-brief',label:'Brief',type:'telegram',emoji:'\u{1F4F0}',threadId:3,r:12},
+  {id:'tg-modelopt',label:'ModelOpt',type:'telegram',emoji:'\u{2699}',threadId:4,r:12},
+  {id:'tg-syshealth',label:'SysHealth',type:'telegram',emoji:'\u{1F3E5}',threadId:5,r:12},
+  {id:'tg-email',label:'Email',type:'telegram',emoji:'\u{2709}',threadId:6,r:12},
+  {id:'tg-research',label:'Research',type:'telegram',emoji:'\u{1F52C}',threadId:18,r:12},
+  {id:'tg-tasks',label:'Tasks',type:'telegram',emoji:'\u{2705}',threadId:19,r:12},
+  {id:'tg-portfolio',label:'Portfolio',type:'telegram',emoji:'\u{1F3A8}',threadId:134,r:12},
+  {id:'tg-gamedev',label:'GameDev',type:'telegram',emoji:'\u{1F3AE}',threadId:204,r:12},
+  {id:'tg-career',label:'CareerCoach',type:'telegram',emoji:'\u{1F4BC}',threadId:760,r:12},
+  {id:'tg-careerintel',label:'CareerIntel',type:'telegram',emoji:'\u{1F4E1}',threadId:1313,r:12},
+  {id:'tg-realestate',label:'RealEstate',type:'telegram',emoji:'\u{1F3E0}',threadId:1613,r:12},
+  {id:'svc-gmail',label:'Gmail API',type:'service',emoji:'\u{1F4E7}',desc:'bermanjarvismk3@gmail.com \u2014 email check, send, calendar',r:16},
+  {id:'svc-drive',label:'Google Drive',type:'service',emoji:'\u{1F4C1}',desc:'Shared folder, real estate docs',r:16},
+  {id:'svc-todoist',label:'Todoist API',type:'service',emoji:'\u{1F4CB}',desc:'Task management (project: Jarvis)',r:16},
+  {id:'svc-twitter',label:'TwitterAPI.io',type:'service',emoji:'\u{1F426}',desc:'X/Twitter intel (read-only)',r:16},
+  {id:'svc-github',label:'GitHub',type:'service',emoji:'\u{1F419}',desc:'Portfolio repo, game repos',r:16},
+];
+const links=[
+  ...['tg-main','tg-brief','tg-modelopt','tg-syshealth','tg-email','tg-research','tg-tasks','tg-portfolio','tg-gamedev','tg-career','tg-careerintel','tg-realestate'].map(t=>({source:'main',target:t,type:'route'})),
+  {source:'daily-brief',target:'tg-brief',type:'output'},
+  {source:'career-coach',target:'tg-career',type:'output'},
+  {source:'career-coach',target:'tg-careerintel',type:'output'},
+  {source:'portfolio-builder',target:'tg-portfolio',type:'output'},
+  {source:'real-estate',target:'tg-realestate',type:'output'},
+  {source:'cron-dream',target:'main',type:'trigger'},
+  {source:'cron-repair',target:'main',type:'trigger'},
+  {source:'cron-initiative',target:'main',type:'trigger'},
+  {source:'cron-initiative-delivery',target:'main',type:'trigger'},
+  {source:'cron-brief-research',target:'daily-brief',type:'trigger'},
+  {source:'cron-brief-eval',target:'daily-brief',type:'trigger'},
+  {source:'cron-brief-delivery',target:'daily-brief',type:'trigger'},
+  {source:'cron-security-digest',target:'main',type:'trigger'},
+  {source:'cron-security-scan',target:'main',type:'trigger'},
+  {source:'cron-version',target:'main',type:'trigger'},
+  {source:'cron-improve',target:'main',type:'trigger'},
+  {source:'cron-brief-research',target:'cron-brief-eval',type:'pipeline'},
+  {source:'cron-brief-eval',target:'cron-brief-delivery',type:'pipeline'},
+  {source:'cron-initiative',target:'cron-initiative-delivery',type:'pipeline'},
+  {source:'heartbeat',target:'main',type:'trigger'},
+  {source:'heartbeat',target:'svc-gmail',type:'data'},
+  {source:'heartbeat',target:'svc-todoist',type:'data'},
+  {source:'heartbeat',target:'tg-email',type:'output'},
+  {source:'heartbeat',target:'tg-syshealth',type:'output'},
+  {source:'heartbeat',target:'tg-tasks',type:'output'},
+  {source:'heartbeat',target:'real-estate',type:'trigger'},
+  {source:'daily-brief',target:'svc-twitter',type:'data'},
+  {source:'daily-brief',target:'svc-gmail',type:'data'},
+  {source:'portfolio-builder',target:'svc-github',type:'data'},
+  {source:'real-estate',target:'svc-drive',type:'data'},
+  {source:'main',target:'svc-todoist',type:'data'},
+  {source:'main',target:'svc-gmail',type:'data'},
+];
+const colorMap={'agent-opus':{fill:'#f59e0b',glow:'rgba(245,158,11,.5)'},'agent-sonnet':{fill:'#3b82f6',glow:'rgba(59,130,246,.5)'},'heartbeat':{fill:'#22c55e',glow:'rgba(34,197,94,.5)'},'cron':{fill:'#a855f7',glow:'rgba(168,85,247,.5)'},'telegram':{fill:'#ef4444',glow:'rgba(239,68,68,.5)'},'service':{fill:'#94a3b8',glow:'rgba(148,163,184,.4)'}};
+
+// Background grid
+(function(){const c=document.getElementById('bg-canvas'),ctx=c.getContext('2d');function resize(){c.width=window.innerWidth;c.height=window.innerHeight}resize();window.addEventListener('resize',resize);let t=0;function draw(){t+=.002;ctx.clearRect(0,0,c.width,c.height);const s=40;ctx.strokeStyle='rgba(59,130,246,.12)';ctx.lineWidth=.5;for(let x=0;x<c.width;x+=s){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,c.height);ctx.stroke()}for(let y=0;y<c.height;y+=s){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(c.width,y);ctx.stroke()}const sy=(t*200)%c.height;const g=ctx.createLinearGradient(0,sy-30,0,sy+30);g.addColorStop(0,'transparent');g.addColorStop(.5,'rgba(59,130,246,.06)');g.addColorStop(1,'transparent');ctx.fillStyle=g;ctx.fillRect(0,sy-30,c.width,60);requestAnimationFrame(draw)}draw()})();
+
+// Graph
+const svg=d3.select('#graph');const width=window.innerWidth,height=window.innerHeight-56;svg.attr('width',width).attr('height',height);
+const defs=svg.append('defs');
+Object.entries(colorMap).forEach(([key,{fill}])=>{const f=defs.append('filter').attr('id','glow-'+key).attr('x','-50%').attr('y','-50%').attr('width','200%').attr('height','200%');f.append('feGaussianBlur').attr('stdDeviation','4').attr('result','blur');f.append('feFlood').attr('flood-color',fill).attr('flood-opacity','.6').attr('result','color');f.append('feComposite').attr('in','color').attr('in2','blur').attr('operator','in').attr('result','glow');const m=f.append('feMerge');m.append('feMergeNode').attr('in','glow');m.append('feMergeNode').attr('in','SourceGraphic')});
+defs.append('marker').attr('id','arrow').attr('viewBox','0 0 10 6').attr('refX',10).attr('refY',3).attr('markerWidth',8).attr('markerHeight',6).attr('orient','auto').append('path').attr('d','M0,0 L10,3 L0,6').attr('fill','rgba(168,85,247,.5)');
+const g=svg.append('g');
+const zoom=d3.zoom().scaleExtent([.3,4]).on('zoom',e=>g.attr('transform',e.transform));
+svg.call(zoom);svg.call(zoom.transform,d3.zoomIdentity.translate(width/2,height/2).scale(.85));
+const simulation=d3.forceSimulation(nodes).force('link',d3.forceLink(links).id(d=>d.id).distance(d=>d.type==='route'?120:d.type==='pipeline'?60:100).strength(d=>d.type==='pipeline'?.8:.3)).force('charge',d3.forceManyBody().strength(d=>d.type==='cron'?-200:d.type==='telegram'?-150:-400)).force('x',d3.forceX(0).strength(.04)).force('y',d3.forceY(0).strength(.04)).force('collision',d3.forceCollide().radius(d=>d.r+8)).alphaDecay(.015);
+const link=g.append('g').selectAll('line').data(links).join('line').attr('stroke',d=>d.type==='pipeline'?'rgba(168,85,247,.4)':'rgba(148,163,184,.15)').attr('stroke-width',d=>d.type==='pipeline'?2:1).attr('stroke-dasharray',d=>d.type==='data'?'4,4':null).attr('marker-end',d=>d.type==='pipeline'?'url(#arrow)':null);
+const node=g.append('g').selectAll('g').data(nodes).join('g').attr('cursor','pointer').call(d3.drag().on('start',(e,d)=>{if(!e.active)simulation.alphaTarget(.3).restart();d.fx=d.x;d.fy=d.y}).on('drag',(e,d)=>{d.fx=e.x;d.fy=e.y}).on('end',(e,d)=>{if(!e.active)simulation.alphaTarget(0);d.fx=null;d.fy=null}));
+node.append('circle').attr('r',d=>d.r).attr('fill',d=>(colorMap[d.type]||{fill:'#666'}).fill).attr('fill-opacity',.15).attr('stroke',d=>(colorMap[d.type]||{fill:'#666'}).fill).attr('stroke-width',1.5).attr('filter',d=>'url(#glow-'+d.type+')').on('mouseenter',function(e,d){d3.select(this).transition().duration(200).attr('fill-opacity',.35).attr('stroke-width',2.5);showTooltip(e,d)}).on('mouseleave',function(){d3.select(this).transition().duration(200).attr('fill-opacity',.15).attr('stroke-width',1.5);hideTooltip()}).on('click',(e,d)=>{e.stopPropagation();openSidebar(d)});
+node.append('text').text(d=>d.emoji||'').attr('text-anchor','middle').attr('dominant-baseline','central').attr('font-size',d=>d.r*.7).attr('pointer-events','none');
+node.append('text').text(d=>d.label).attr('text-anchor','middle').attr('y',d=>d.r+14).attr('font-size',d=>d.r>20?'.7rem':'.6rem').attr('fill','#94a3b8').attr('pointer-events','none');
+simulation.on('tick',()=>{link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);node.attr('transform',d=>'translate('+d.x+','+d.y+')')});
+
+// Tooltip
+const tooltip=document.getElementById('tooltip');
+function showTooltip(e,d){tooltip.innerHTML='<strong>'+d.emoji+' '+d.label+'</strong>'+(d.model?'<br><span style="color:#94a3b8">'+d.model+'</span>':'')+(d.schedule?'<br><span style="color:#94a3b8">'+d.schedule+'</span>':'');tooltip.style.left=(e.clientX+14)+'px';tooltip.style.top=(e.clientY-10)+'px';tooltip.style.opacity='1'}
+function hideTooltip(){tooltip.style.opacity='0'}
+
+// Sidebar
+const sidebar=document.getElementById('sidebar'),sidebarContent=document.getElementById('sidebar-content');
+document.getElementById('sidebar-close').onclick=()=>sidebar.classList.remove('open');
+svg.on('click',()=>sidebar.classList.remove('open'));
+function openSidebar(d){
+  const c=(colorMap[d.type]||{fill:'#666'});
+  const connected=links.filter(l=>(l.source.id||l.source)===d.id||(l.target.id||l.target)===d.id).map(l=>{const o=(l.source.id||l.source)===d.id?(l.target.id||l.target):(l.source.id||l.source);const n=nodes.find(x=>x.id===o);return n?n.emoji+' '+n.label:o});
+  let h='<div class="sb-header"><div class="emoji">'+d.emoji+'</div><h2 style="color:'+c.fill+'">'+d.label+'</h2>'+(d.model?'<div class="model">'+d.model+'</div>':'')+(d.threadId?'<div class="model">Thread ID: '+d.threadId+'</div>':'')+'</div>';
+  if(d.desc)h+='<div class="sb-section"><h4>Description</h4><p class="sb-description">'+d.desc+'</p></div>';
+  if(d.workspace)h+='<div class="sb-section"><h4>Workspace</h4><p class="sb-description" style="font-family:monospace;font-size:.75rem">'+d.workspace+'</p></div>';
+  if(d.schedule)h+='<div class="sb-section"><h4>Schedule</h4><p class="sb-description">'+d.schedule+(d.agent?' &middot; Agent: '+d.agent:'')+'</p></div>';
+  if(d.files&&d.files.length)h+='<div class="sb-section"><h4>Key Files</h4><ul>'+d.files.map(f=>'<li>'+f+'</li>').join('')+'</ul></div>';
+  if(d.steps&&d.steps.length)h+='<div class="sb-section"><h4>Pipeline Steps</h4><ul>'+d.steps.map((s,i)=>'<li><span class="sb-tag">'+(i+1)+'</span> '+s+'</li>').join('')+'</ul></div>';
+  if(connected.length)h+='<div class="sb-section"><h4>Connections ('+connected.length+')</h4><ul>'+connected.map(c=>'<li>'+c+'</li>').join('')+'</ul></div>';
+  sidebarContent.innerHTML=h;sidebar.classList.add('open');
+}
+window.addEventListener('resize',()=>{const w=window.innerWidth,h=window.innerHeight-56;svg.attr('width',w).attr('height',h)});
+</script>
+</body>
+</html>
