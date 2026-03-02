@@ -2,311 +2,287 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>JARVIS System Architecture</title>
-<script src="https://d3js.org/d3.v7.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jarvis System Architecture</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --bg:#0a0e17;--bg2:#111827;--border:#1e293b;--text:#e2e8f0;--text2:#94a3b8;
-  --gold:#f59e0b;--blue:#3b82f6;--green:#22c55e;--purple:#a855f7;--red:#ef4444;--grey:#94a3b8;
-  --sidebar:360px;
-}
-html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text)}
-#bg-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.15}
-#title-bar{position:fixed;top:0;left:0;right:0;z-index:100;height:56px;display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(180deg,rgba(10,14,23,.95),rgba(10,14,23,.7));backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
-#title-bar h1{font-size:1.1rem;letter-spacing:.35em;font-weight:300;text-transform:uppercase;
-  background:linear-gradient(90deg,var(--gold),#fff,var(--gold));background-size:200% 100%;
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:shimmer 6s linear infinite}
-@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-#title-bar .pulse{width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:12px;animation:pulse 2s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 4px var(--green)}50%{opacity:.4;box-shadow:0 0 12px var(--green)}}
-#title-bar .version{position:absolute;right:18px;font-size:.65rem;color:var(--text2);letter-spacing:.1em}
-#legend{position:fixed;bottom:16px;left:16px;z-index:90;background:rgba(17,24,39,.9);backdrop-filter:blur(8px);
-  border:1px solid var(--border);border-radius:10px;padding:14px 18px;font-size:.75rem}
-#legend h3{font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--text2);margin-bottom:8px}
-.legend-item{display:flex;align-items:center;gap:8px;margin:4px 0;color:var(--text2)}
-.legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
-#graph{position:fixed;top:56px;left:0;right:0;bottom:0;z-index:1}
-#sidebar{position:fixed;top:56px;right:0;bottom:0;width:var(--sidebar);z-index:80;
-  background:rgba(17,24,39,.95);backdrop-filter:blur(16px);border-left:1px solid var(--border);
-  transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);overflow-y:auto;padding:0}
-#sidebar.open{transform:translateX(0)}
-#sidebar-close{position:absolute;top:12px;right:14px;background:none;border:none;color:var(--text2);font-size:1.3rem;cursor:pointer;z-index:2;line-height:1}
-#sidebar-close:hover{color:#fff}
-.sb-header{padding:24px 20px 16px;border-bottom:1px solid var(--border)}
-.sb-header .emoji{font-size:2rem;margin-bottom:6px}
-.sb-header h2{font-size:1.15rem;font-weight:600;margin:4px 0 2px}
-.sb-header .model{font-size:.75rem;color:var(--text2);font-family:'SF Mono',Consolas,monospace}
-.sb-section{padding:14px 20px;border-bottom:1px solid var(--border)}
-.sb-section h4{font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text2);margin-bottom:8px}
-.sb-section ul{list-style:none;padding:0}
-.sb-section li{font-size:.8rem;padding:3px 0;color:var(--text);display:flex;align-items:center;gap:6px}
-.sb-section li::before{content:'\203A';color:var(--text2);font-weight:bold}
-.sb-tag{display:inline-block;font-size:.65rem;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.08);color:var(--text2);margin:2px 2px 2px 0}
-.sb-description{font-size:.8rem;color:var(--text2);line-height:1.5}
-.tooltip{position:fixed;z-index:200;background:rgba(17,24,39,.95);border:1px solid var(--border);border-radius:8px;
-  padding:8px 12px;font-size:.75rem;pointer-events:none;opacity:0;transition:opacity .15s;max-width:260px}
-@media(max-width:768px){:root{--sidebar:100vw}#legend{bottom:8px;left:8px;padding:10px 14px;font-size:.65rem}}
+  *{margin:0;padding:0;box-sizing:border-box}
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  body{font-family:'Inter',system-ui,sans-serif;background:#0a0e17;color:#e2e8f0;min-height:100vh;overflow-x:hidden}
+  #breadcrumb{position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 24px;
+    background:linear-gradient(180deg,rgba(10,14,23,.95) 60%,transparent);
+    font-size:13px;color:#64748b;letter-spacing:.5px;display:flex;align-items:center;gap:8px}
+  #breadcrumb span{color:#94a3b8;cursor:pointer;transition:color .2s}
+  #breadcrumb span:hover{color:#e2e8f0}
+  #breadcrumb span.active{color:#e2e8f0}
+  #breadcrumb .sep{color:#334155;cursor:default}
+  #title{text-align:center;padding:72px 20px 0;opacity:.6;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#64748b}
+  #canvas{position:relative;width:100%;min-height:calc(100vh - 100px);padding:20px}
+  #lines{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1}
+  #lines line{stroke:#1e293b;stroke-width:1.5;fill:none;transition:all .5s cubic-bezier(.4,0,.2,1)}
+  #lines line.active{stroke:#334155;stroke-width:2}
+  #lines line.pipeline{stroke:#0e7490;stroke-width:2;stroke-dasharray:6 3}
+  #lines line.step-line{stroke:#22543d;stroke-width:1.5;stroke-dasharray:4 4}
+  .node{position:absolute;border-radius:16px;background:#111827;border:1px solid #1e293b;
+    cursor:pointer;transition:all .5s cubic-bezier(.4,0,.2,1);z-index:10;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:16px 12px;user-select:none;opacity:0;transform:scale(.85) translateY(10px)}
+  .node.visible{opacity:1;transform:scale(1) translateY(0)}
+  .node:hover{border-color:#334155;transform:translateY(-2px)!important;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+  .node.expanded{border-color:#475569;box-shadow:0 0 40px rgba(99,102,241,.08)}
+  .node.top{width:160px;height:90px}
+  .node.child{width:150px;height:72px}
+  .node.step{width:180px;height:56px}
+  .node .emoji{font-size:24px;margin-bottom:4px;line-height:1}
+  .node.child .emoji,.node.step .emoji{font-size:16px;margin-bottom:2px}
+  .node .name{font-weight:600;font-size:13px;line-height:1.2;margin-bottom:4px;color:#f1f5f9}
+  .node.child .name,.node.step .name{font-size:11px;font-weight:500}
+  .badge{font-size:9px;font-weight:600;padding:2px 8px;border-radius:99px;letter-spacing:.3px;text-transform:uppercase}
+  .badge.opus{background:rgba(234,179,8,.15);color:#facc15}
+  .badge.sonnet{background:rgba(59,130,246,.15);color:#60a5fa}
+  .badge.haiku{background:rgba(34,197,94,.15);color:#4ade80}
+  .badge.cron{background:rgba(168,85,247,.15);color:#c084fc}
+  .badge.telegram{background:rgba(239,68,68,.15);color:#f87171}
+  .badge.service{background:rgba(100,116,139,.15);color:#94a3b8}
+  .badge.pipeline{background:rgba(6,182,212,.15);color:#22d3ee}
+  .badge.step{background:rgba(34,197,94,.1);color:#4ade80}
+  .node .desc{font-size:10px;color:#64748b;margin-top:2px;line-height:1.2;max-width:140px}
+  #sidebar{position:fixed;right:0;top:0;bottom:0;width:340px;background:#0f1420;border-left:1px solid #1e293b;
+    z-index:200;transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);
+    padding:60px 24px 24px;overflow-y:auto;font-size:13px}
+  #sidebar.open{transform:translateX(0)}
+  #sidebar h2{font-size:16px;font-weight:600;margin-bottom:4px}
+  #sidebar .sub{margin-bottom:16px}
+  #sidebar .detail-section{margin-bottom:16px}
+  #sidebar .detail-section h3{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#475569;margin-bottom:8px}
+  #sidebar .detail-item{background:#111827;border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:12px;line-height:1.5;color:#94a3b8}
+  #sidebar .detail-item strong{color:#e2e8f0}
+  #sidebar-close{position:absolute;top:16px;right:16px;background:none;border:none;color:#64748b;cursor:pointer;font-size:20px;line-height:1}
+  @media(max-width:768px){
+    .node.top{width:110px;height:76px;padding:10px 6px}
+    .node .emoji{font-size:20px}
+    .node .name{font-size:10px}
+    .badge{font-size:7px;padding:1px 6px}
+    .node.child{width:110px;height:58px}
+    .node.step{width:130px;height:46px}
+    #sidebar{width:260px}
+    .node .desc{display:none}
+  }
 </style>
 </head>
 <body>
-<canvas id="bg-canvas"></canvas>
-<div id="title-bar"><div class="pulse"></div><h1>Jarvis System Architecture</h1><span class="version">V2</span></div>
-<div id="legend">
-  <h3>Node Types</h3>
-  <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div>Opus 4.6 Agent</div>
-  <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>Sonnet 4.5 Agent</div>
-  <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Haiku 4.5</div>
-  <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>Cron Job</div>
-  <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Telegram Topic</div>
-  <div class="legend-item"><div class="legend-dot" style="background:var(--grey)"></div>External Service</div>
-  <h3 style="margin-top:10px">Connections</h3>
-  <div class="legend-item"><svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke="rgba(148,163,184,.4)" stroke-width="1.5"/></svg>Routes to</div>
-  <div class="legend-item"><svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke="var(--purple)" stroke-width="2"/><polygon points="20,1 24,4 20,7" fill="var(--purple)"/></svg>Pipeline</div>
-  <div class="legend-item"><svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke="rgba(148,163,184,.3)" stroke-width="1" stroke-dasharray="4,3"/></svg>Data</div>
+<div id="breadcrumb"><span class="active" onclick="collapseAll()">Jarvis System</span></div>
+<div id="title">System Architecture · V3</div>
+<div id="canvas"><svg id="lines"></svg></div>
+<div id="sidebar">
+  <button id="sidebar-close" onclick="closeSidebar()">&times;</button>
+  <div id="sidebar-content"></div>
 </div>
-<svg id="graph"></svg>
-<div id="sidebar"><button id="sidebar-close">&times;</button><div id="sidebar-content"></div></div>
-<div class="tooltip" id="tooltip"></div>
 <script>
-const nodes=[
-  {id:'main',label:'Jarvis (Main)',type:'agent-opus',emoji:'\u{1F916}',model:'Opus 4.6',desc:'Default orchestrator. Handles conversations, heartbeats, task management, system stewardship.',workspace:'~/.openclaw/workspace',files:['MEMORY.md','AGENTS.md','SOUL.md','HEARTBEAT.md','TOOLS.md','SAFETY.md']},
-  {id:'daily-brief',label:'Jarvis Brief',type:'agent-sonnet',emoji:'\u{1F4F0}',model:'Sonnet 4.5',desc:'Research, evaluation, and delivery of daily intelligence briefing.',workspace:'~/.openclaw/workspace-daily-brief',files:['FORMAT-EMAIL.md','CONFIG.md','evaluator-prompt.md','briefs/']},
-  {id:'career-coach',label:'Jarvis Career',type:'agent-sonnet',emoji:'\u{1F4BC}',model:'Sonnet 4.5',desc:'Career strategy, job search, career intel.',workspace:'~/.openclaw/workspace-career-coach',files:['MIKE-BERMAN-PROFILE.md','architecture.md','job-recommendations.md']},
-  {id:'portfolio-builder',label:'Portfolio Builder',type:'agent-opus',emoji:'\u{1F3A8}',model:'Opus 4.6',desc:'Portfolio website development.',workspace:'~/.openclaw/workspace-portfolio-builder',files:['design-system.md','tech-stack.md','portfolio/BRIEF.md']},
-  {id:'real-estate',label:'Jarvis Realty',type:'agent-sonnet',emoji:'\u{1F3E0}',model:'Sonnet 4.5',desc:'Property intelligence briefs, open house research.',workspace:'~/.openclaw/workspace-real-estate',files:['AGENTS.md']},
-  {id:'heartbeat',label:'Heartbeat',type:'heartbeat',emoji:'\u{1F493}',model:'Haiku 4.5',desc:'Runs every 60 min (00:00-23:59 PST). 10-step monitoring pipeline.',schedule:'Every 60 min, 24/7',steps:['Time Gate','Load State','Email Check (50m)','Hardware Health (4h)','Disk Space (4h)','Todoist Check','Open House Detection','Memory Maintenance (72h)','Log Usage','Update State']},
-  {id:'cron-dream',label:'Dream Cycle',type:'cron',emoji:'\u{1F319}',schedule:'2 AM daily',agent:'main'},
-  {id:'cron-repair',label:'Self-Repair',type:'cron',emoji:'\u{1F527}',schedule:'3 AM daily',agent:'default'},
-  {id:'cron-initiative',label:'Nightly Initiative',type:'cron',emoji:'\u{1F4A1}',schedule:'4 AM daily (exact)',agent:'main',model:'Opus 4.6'},
-  {id:'cron-initiative-delivery',label:'Initiative Delivery',type:'cron',emoji:'\u{1F4EC}',schedule:'6 AM daily',agent:'main'},
-  {id:'cron-brief-research',label:'Brief Research',type:'cron',emoji:'\u{1F50D}',schedule:'6:30 AM daily',agent:'daily-brief'},
-  {id:'cron-brief-eval',label:'Brief Evaluator',type:'cron',emoji:'\u{1F4CA}',schedule:'6:45 AM daily',agent:'daily-brief'},
-  {id:'cron-brief-delivery',label:'Brief Delivery',type:'cron',emoji:'\u{1F4E8}',schedule:'7 AM daily',agent:'daily-brief'},
-  {id:'cron-security-digest',label:'Security Digest',type:'cron',emoji:'\u{1F6E1}',schedule:'8 AM Mondays',agent:'main'},
-  {id:'cron-security-scan',label:'Security Scan',type:'cron',emoji:'\u{1F512}',schedule:'9 AM Mondays',agent:'default'},
-  {id:'cron-version',label:'Version Check',type:'cron',emoji:'\u{1F4E6}',schedule:'10 AM daily',agent:'main'},
-  {id:'cron-improve',label:'Self-Improvement',type:'cron',emoji:'\u{1F9E0}',schedule:'2 PM Sundays',agent:'default'},
-  {id:'tg-main',label:'Main',type:'telegram',emoji:'\u{1F4AC}',threadId:2},
-  {id:'tg-brief',label:'Brief',type:'telegram',emoji:'\u{1F4F0}',threadId:3},
-  {id:'tg-modelopt',label:'ModelOpt',type:'telegram',emoji:'\u{2699}',threadId:4},
-  {id:'tg-syshealth',label:'SysHealth',type:'telegram',emoji:'\u{1F3E5}',threadId:5},
-  {id:'tg-email',label:'Email',type:'telegram',emoji:'\u{2709}',threadId:6},
-  {id:'tg-research',label:'Research',type:'telegram',emoji:'\u{1F52C}',threadId:18},
-  {id:'tg-tasks',label:'Tasks',type:'telegram',emoji:'\u{2705}',threadId:19},
-  {id:'tg-portfolio',label:'Portfolio',type:'telegram',emoji:'\u{1F3A8}',threadId:134},
-  {id:'tg-gamedev',label:'GameDev',type:'telegram',emoji:'\u{1F3AE}',threadId:204},
-  {id:'tg-career',label:'CareerCoach',type:'telegram',emoji:'\u{1F4BC}',threadId:760},
-  {id:'tg-careerintel',label:'CareerIntel',type:'telegram',emoji:'\u{1F4E1}',threadId:1313},
-  {id:'tg-realestate',label:'RealEstate',type:'telegram',emoji:'\u{1F3E0}',threadId:1613},
-  {id:'svc-gmail',label:'Gmail API',type:'service',emoji:'\u{1F4E7}',desc:'bermanjarvismk3@gmail.com \u2014 email check, send, calendar'},
-  {id:'svc-drive',label:'Google Drive',type:'service',emoji:'\u{1F4C1}',desc:'Shared folder, real estate docs'},
-  {id:'svc-todoist',label:'Todoist API',type:'service',emoji:'\u{1F4CB}',desc:'Task management (project: Jarvis)'},
-  {id:'svc-twitter',label:'TwitterAPI.io',type:'service',emoji:'\u{1F426}',desc:'X/Twitter intel (read-only)'},
-  {id:'svc-github',label:'GitHub',type:'service',emoji:'\u{1F419}',desc:'Portfolio repo, game repos'},
-];
-const links=[
-  ...['tg-main','tg-brief','tg-modelopt','tg-syshealth','tg-email','tg-research','tg-tasks','tg-portfolio','tg-gamedev','tg-career','tg-careerintel','tg-realestate'].map(t=>({source:'main',target:t,type:'route',label:'routes'})),
-  {source:'daily-brief',target:'tg-brief',type:'output',label:'outputs to'},
-  {source:'career-coach',target:'tg-career',type:'output',label:'outputs to'},
-  {source:'career-coach',target:'tg-careerintel',type:'output',label:'outputs to'},
-  {source:'portfolio-builder',target:'tg-portfolio',type:'output',label:'outputs to'},
-  {source:'real-estate',target:'tg-realestate',type:'output',label:'outputs to'},
-  {source:'cron-dream',target:'main',type:'trigger',label:'triggers'},
-  {source:'cron-repair',target:'main',type:'trigger',label:'triggers'},
-  {source:'cron-initiative',target:'main',type:'trigger',label:'triggers'},
-  {source:'cron-initiative-delivery',target:'main',type:'trigger',label:'triggers'},
-  {source:'cron-brief-research',target:'daily-brief',type:'trigger',label:'triggers'},
-  {source:'cron-brief-eval',target:'daily-brief',type:'trigger',label:'triggers'},
-  {source:'cron-brief-delivery',target:'daily-brief',type:'trigger',label:'triggers'},
-  {source:'cron-security-digest',target:'main',type:'trigger',label:'triggers'},
-  {source:'cron-security-scan',target:'main',type:'trigger',label:'triggers'},
-  {source:'cron-version',target:'main',type:'trigger',label:'triggers'},
-  {source:'cron-improve',target:'main',type:'trigger',label:'triggers'},
-  {source:'cron-brief-research',target:'cron-brief-eval',type:'pipeline',label:''},
-  {source:'cron-brief-eval',target:'cron-brief-delivery',type:'pipeline',label:''},
-  {source:'cron-initiative',target:'cron-initiative-delivery',type:'pipeline',label:''},
-  {source:'heartbeat',target:'main',type:'trigger',label:'feeds'},
-  {source:'heartbeat',target:'svc-gmail',type:'data',label:'reads'},
-  {source:'heartbeat',target:'svc-todoist',type:'data',label:'reads'},
-  {source:'heartbeat',target:'tg-email',type:'output',label:'alerts'},
-  {source:'heartbeat',target:'tg-syshealth',type:'output',label:'alerts'},
-  {source:'heartbeat',target:'tg-tasks',type:'output',label:'alerts'},
-  {source:'heartbeat',target:'real-estate',type:'trigger',label:'triggers'},
-  {source:'daily-brief',target:'svc-twitter',type:'data',label:'reads from'},
-  {source:'daily-brief',target:'svc-gmail',type:'data',label:'reads from'},
-  {source:'portfolio-builder',target:'svc-github',type:'data',label:'pushes to'},
-  {source:'real-estate',target:'svc-drive',type:'data',label:'writes to'},
-  {source:'main',target:'svc-todoist',type:'data',label:'manages'},
-  {source:'main',target:'svc-gmail',type:'data',label:'reads'},
-];
-const colorMap={
-  'agent-opus':{fill:'#f59e0b',glow:'rgba(245,158,11,.4)'},
-  'agent-sonnet':{fill:'#3b82f6',glow:'rgba(59,130,246,.4)'},
-  'heartbeat':{fill:'#22c55e',glow:'rgba(34,197,94,.4)'},
-  'cron':{fill:'#a855f7',glow:'rgba(168,85,247,.4)'},
-  'telegram':{fill:'#ef4444',glow:'rgba(239,68,68,.4)'},
-  'service':{fill:'#94a3b8',glow:'rgba(148,163,184,.3)'}
+const NODES={
+  jarvis:{id:'jarvis',emoji:'🤖',name:'Jarvis',badge:'opus',badgeText:'Opus 4.6',desc:'Main Orchestrator',
+    detail:{description:'Central orchestrator and primary intelligence. Manages all sub-agents, cron scheduling, memory consolidation, and direct interaction with Mr. Berman.',workspace:'/home/jarvis/.openclaw/workspace',files:['SOUL.md','AGENTS.md','MEMORY.md','TOOLS.md','SAFETY.md','IDENTITY.md'],threadId:'-1003798176791:topic:2'},
+    children:[
+      {id:'c-dream',emoji:'🌙',name:'Dream Cycle',badge:'cron',badgeText:'Cron',desc:'3:00 AM · Opus',detail:{schedule:'0 3 * * *',model:'claude-opus-4-6',description:'Nightly memory consolidation — reviews daily memory files, promotes important patterns to MEMORY.md, prunes stale entries.'}},
+      {id:'c-selfrepair',emoji:'🔧',name:'Self-Repair',badge:'cron',badgeText:'Cron',desc:'4:00 AM · Opus',detail:{schedule:'0 4 * * *',model:'claude-opus-4-6',description:'Automated self-healing — checks workspace integrity, fixes broken configs, validates tool connections.'}},
+      {id:'c-nightly',emoji:'🚀',name:'Nightly Initiative',badge:'cron',badgeText:'Cron',desc:'2:00 AM · Opus',detail:{schedule:'0 2 * * *',model:'claude-opus-4-6',description:'Proactive improvement cycle — identifies optimization opportunities, proposes system enhancements. Delivers report to Telegram.'}},
+      {id:'c-secdigest',emoji:'📋',name:'Security Digest',badge:'cron',badgeText:'Cron',desc:'6:00 AM · Sonnet',detail:{schedule:'0 6 * * *',model:'claude-sonnet-4-5',description:'Daily security summary — compiles overnight scan results, flags anomalies.'}},
+      {id:'c-secscan',emoji:'🛡️',name:'Security Scan',badge:'cron',badgeText:'Cron',desc:'Every 6h · Haiku',detail:{schedule:'0 */6 * * *',model:'claude-haiku-4-5',description:'Periodic security sweep — SSH logs, firewall, open ports, failed auth.'}},
+      {id:'c-version',emoji:'📦',name:'Version Check',badge:'cron',badgeText:'Cron',desc:'Weekly · Haiku',detail:{schedule:'0 5 * * 1',model:'claude-haiku-4-5',description:'Weekly dependency and version audit — OpenClaw, Node.js, system packages.'}},
+      {id:'c-selfimprove',emoji:'💡',name:'Self-Improvement',badge:'cron',badgeText:'Cron',desc:'Daily · Opus',detail:{schedule:'0 1 * * *',model:'claude-opus-4-6',description:'Research new OpenClaw features, optimize prompts, improve workflows.'}},
+      {id:'t-main',emoji:'💬',name:'Main Orchestrator',badge:'telegram',badgeText:'Topic',desc:'Thread ID: 2'},
+      {id:'t-modelopt',emoji:'💬',name:'Model Optimization',badge:'telegram',badgeText:'Topic',desc:'Thread ID: 638'},
+      {id:'t-security',emoji:'💬',name:'Security & Infra',badge:'telegram',badgeText:'Topic',desc:'Thread ID: 936'},
+      {id:'s-gmail',emoji:'📧',name:'Gmail',badge:'service',badgeText:'Service',desc:'bermanjarvismk3'},
+      {id:'s-todoist',emoji:'✅',name:'Todoist',badge:'service',badgeText:'Service',desc:'Task board'}
+    ]},
+  brief:{id:'brief',emoji:'📰',name:'Daily Brief',badge:'sonnet',badgeText:'Sonnet 4.5',desc:'Intelligence Briefing',
+    detail:{description:'Three-stage intelligence pipeline delivering a curated daily briefing covering tech, AI, markets, and topics of interest.',workspace:'/home/jarvis/.openclaw/workspace',files:['crons/brief-research.md','crons/brief-evaluator.md','crons/brief-delivery.md'],threadId:'-1003798176791:topic:534'},
+    children:[
+      {id:'b-research',emoji:'🔍',name:'Brief Research',badge:'pipeline',badgeText:'Stage 1',desc:'6:00 AM · Sonnet',detail:{schedule:'0 6 * * *',model:'claude-sonnet-4-5',description:'Gathers raw intelligence from web search, Twitter API, RSS feeds.',pipeline:'→ Evaluator'}},
+      {id:'b-evaluator',emoji:'⚖️',name:'Brief Evaluator',badge:'pipeline',badgeText:'Stage 2',desc:'6:15 AM · Opus',detail:{schedule:'15 6 * * *',model:'claude-opus-4-6',description:'Scores and filters research bundle. Ranks by relevance, structures final brief.',pipeline:'→ Delivery'}},
+      {id:'b-delivery',emoji:'📨',name:'Brief Delivery',badge:'pipeline',badgeText:'Stage 3',desc:'6:30 AM · Sonnet',detail:{schedule:'30 6 * * *',model:'claude-sonnet-4-5',description:'Formats and delivers final briefing to Telegram Daily Brief topic.',pipeline:'End'}},
+      {id:'bt-brief',emoji:'💬',name:'Daily Brief',badge:'telegram',badgeText:'Topic',desc:'Thread ID: 534'},
+      {id:'bs-gmail',emoji:'📧',name:'Gmail',badge:'service',badgeText:'Service',desc:'Newsletter sources'},
+      {id:'bs-twitter',emoji:'🐦',name:'Twitter API',badge:'service',badgeText:'Service',desc:'X/Twitter intel'}
+    ]},
+  career:{id:'career',emoji:'💼',name:'Career Coach',badge:'sonnet',badgeText:'Sonnet 4.5',desc:'Career Strategy',
+    detail:{description:'Strategic career advisor — monitors job markets, refines resume/positioning, tracks applications, provides coaching.',threadId:'-1003798176791:topic:316'},
+    children:[
+      {id:'ct-coach',emoji:'💬',name:'CareerCoach',badge:'telegram',badgeText:'Topic',desc:'Thread ID: 316'},
+      {id:'ct-intel',emoji:'💬',name:'CareerIntel',badge:'telegram',badgeText:'Topic',desc:'Thread ID: 748'},
+      {id:'cs-todoist',emoji:'✅',name:'Todoist',badge:'service',badgeText:'Service',desc:'Application tracking'}
+    ]},
+  portfolio:{id:'portfolio',emoji:'🎨',name:'Portfolio Builder',badge:'opus',badgeText:'Opus 4.6',desc:'Portfolio Site',
+    detail:{description:"Builds and maintains Mr. Berman's personal portfolio website. Manages versioning, deployment via GitHub Pages.",url:'https://wetjuice.github.io/mberman-portfolio/',threadId:'-1003798176791:topic:470'},
+    children:[
+      {id:'pt-portfolio',emoji:'💬',name:'Portfolio',badge:'telegram',badgeText:'Topic',desc:'Thread ID: 470'},
+      {id:'ps-github',emoji:'🐙',name:'GitHub Pages',badge:'service',badgeText:'Service',desc:'wetjuice.github.io'}
+    ]},
+  realestate:{id:'realestate',emoji:'🏠',name:'Real Estate',badge:'sonnet',badgeText:'Sonnet 4.5',desc:'Property Intel',
+    detail:{description:'Property intelligence — researches neighborhoods, schools, open houses, market data. Reports to Google Drive.',driveFolder:'1ms0GBrkE1lA-wNJzOXzBVuzrkAYuQxkN',threadId:'-1003798176791:topic:818'},
+    children:[
+      {id:'rt-realestate',emoji:'💬',name:'RealEstate',badge:'telegram',badgeText:'Topic',desc:'Thread ID: 818'},
+      {id:'rs-drive',emoji:'📁',name:'Google Drive',badge:'service',badgeText:'Service',desc:'Property docs'}
+    ]},
+  heartbeat:{id:'heartbeat',emoji:'💓',name:'Heartbeat',badge:'haiku',badgeText:'Haiku 4.5',desc:'System Monitor',
+    detail:{description:'10-step monitoring pipeline running every 30 minutes. Checks system health, email, tasks, memory state.',schedule:'Every 30 min',model:'claude-haiku-4-5'},
+    children:[
+      {id:'h1',emoji:'⏱️',name:'Time Gate',badge:'step',badgeText:'Step 1',desc:'Elapsed time check'},
+      {id:'h2',emoji:'📂',name:'Load State',badge:'step',badgeText:'Step 2',desc:'Read state file'},
+      {id:'h3',emoji:'📧',name:'Email Check',badge:'step',badgeText:'Step 3',desc:'Urgent unread scan'},
+      {id:'h4',emoji:'🖥️',name:'Hardware Health',badge:'step',badgeText:'Step 4',desc:'CPU, RAM, temp'},
+      {id:'h5',emoji:'💾',name:'Disk Space',badge:'step',badgeText:'Step 5',desc:'Storage check'},
+      {id:'h6',emoji:'✅',name:'Todoist Check',badge:'step',badgeText:'Step 6',desc:'Active tasks'},
+      {id:'h7',emoji:'🏠',name:'Open House Detect',badge:'step',badgeText:'Step 7',desc:'New listings'},
+      {id:'h8',emoji:'🧠',name:'Memory Maint.',badge:'step',badgeText:'Step 8',desc:'Prune & consolidate'},
+      {id:'h9',emoji:'📊',name:'Log Usage',badge:'step',badgeText:'Step 9',desc:'Token tracking'},
+      {id:'h10',emoji:'💾',name:'Update State',badge:'step',badgeText:'Step 10',desc:'Write state file'}
+    ]}
 };
 
-// Fixed hierarchical positions
-const positions = {
-  'main': {x:0, y:-120},
-  'heartbeat': {x:-240, y:-120},
-  'daily-brief': {x:-270, y:100},
-  'career-coach': {x:-90, y:100},
-  'portfolio-builder': {x:90, y:100},
-  'real-estate': {x:270, y:100},
-  'cron-initiative': {x:-680, y:-30},
-  'cron-initiative-delivery': {x:-680, y:40},
-  'cron-dream': {x:-540, y:-30},
-  'cron-repair': {x:-540, y:40},
-  'cron-brief-research': {x:-680, y:150},
-  'cron-brief-eval': {x:-680, y:220},
-  'cron-brief-delivery': {x:-680, y:290},
-  'cron-security-digest': {x:-540, y:110},
-  'cron-security-scan': {x:-540, y:180},
-  'cron-version': {x:-540, y:250},
-  'cron-improve': {x:-540, y:320},
-  'tg-main': {x:480, y:-50},
-  'tg-brief': {x:620, y:-50},
-  'tg-modelopt': {x:480, y:20},
-  'tg-syshealth': {x:620, y:20},
-  'tg-email': {x:480, y:90},
-  'tg-research': {x:620, y:90},
-  'tg-tasks': {x:480, y:160},
-  'tg-portfolio': {x:620, y:160},
-  'tg-gamedev': {x:480, y:230},
-  'tg-career': {x:620, y:230},
-  'tg-careerintel': {x:480, y:300},
-  'tg-realestate': {x:620, y:300},
-  'svc-gmail': {x:-200, y:480},
-  'svc-todoist': {x:-60, y:480},
-  'svc-twitter': {x:80, y:480},
-  'svc-github': {x:200, y:480},
-  'svc-drive': {x:320, y:480},
-};
-nodes.forEach(n=>{const p=positions[n.id];if(p){n.x=p.x;n.y=p.y}});
+const TOP_ORDER=['jarvis','brief','career','portfolio','realestate','heartbeat'];
+let expanded={},nodePositions={};
+const canvas=document.getElementById('canvas'),svg=document.getElementById('lines'),breadcrumbEl=document.getElementById('breadcrumb');
 
-function cardSize(n){
-  if(n.id==='main') return {w:150,h:52};
-  if(n.type==='agent-opus'||n.type==='agent-sonnet'||n.type==='heartbeat') return {w:140,h:44};
-  if(n.type==='cron') return {w:130,h:34};
-  if(n.type==='telegram') return {w:115,h:30};
-  return {w:115,h:34};
+function calcPositions(){
+  nodePositions={};
+  const W=canvas.getBoundingClientRect().width;
+  const topCount=TOP_ORDER.length;
+  const spacing=Math.min(200,(W-40)/topCount);
+  const startX=(W-spacing*(topCount-1))/2-80;
+  const topY=120;
+  let maxBottom=topY+110;
+
+  TOP_ORDER.forEach((id,i)=>{
+    const x=startX+i*spacing;
+    nodePositions[id]={x,y:topY};
+    if(expanded[id]){
+      const children=NODES[id].children||[];
+      if(id==='heartbeat'){
+        children.forEach((c,ci)=>{nodePositions[c.id]={x:x-10,y:topY+120+ci*68}});
+        maxBottom=Math.max(maxBottom,topY+120+children.length*68+40);
+      } else {
+        const cols=Math.min(3,children.length);
+        const cSpacing=170;
+        const cStartX=x+80-((Math.min(cols,children.length)-1)*cSpacing)/2;
+        children.forEach((c,ci)=>{
+          nodePositions[c.id]={x:cStartX+(ci%cols)*cSpacing-75,y:topY+120+Math.floor(ci/cols)*90};
+        });
+        maxBottom=Math.max(maxBottom,topY+120+Math.ceil(children.length/cols)*90+40);
+      }
+    }
+  });
+  canvas.style.minHeight=(maxBottom+40)+'px';
 }
 
-// Background grid
-(function(){const c=document.getElementById('bg-canvas'),ctx=c.getContext('2d');function resize(){c.width=window.innerWidth;c.height=window.innerHeight}resize();window.addEventListener('resize',resize);let t=0;function draw(){t+=.002;ctx.clearRect(0,0,c.width,c.height);const s=40;ctx.strokeStyle='rgba(59,130,246,.1)';ctx.lineWidth=.5;for(let x=0;x<c.width;x+=s){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,c.height);ctx.stroke()}for(let y=0;y<c.height;y+=s){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(c.width,y);ctx.stroke()}const sy=(t*180)%c.height;const gr=ctx.createLinearGradient(0,sy-30,0,sy+30);gr.addColorStop(0,'transparent');gr.addColorStop(.5,'rgba(59,130,246,.05)');gr.addColorStop(1,'transparent');ctx.fillStyle=gr;ctx.fillRect(0,sy-30,c.width,60);requestAnimationFrame(draw)}draw()})();
-
-// SVG setup
-const svg=d3.select('#graph');let width=window.innerWidth,height=window.innerHeight-56;
-svg.attr('width',width).attr('height',height);
-const defs=svg.append('defs');
-Object.entries(colorMap).forEach(([key,{fill}])=>{const f=defs.append('filter').attr('id','glow-'+key).attr('x','-50%').attr('y','-50%').attr('width','200%').attr('height','200%');f.append('feGaussianBlur').attr('stdDeviation','3').attr('result','blur');f.append('feFlood').attr('flood-color',fill).attr('flood-opacity','.5').attr('result','color');f.append('feComposite').attr('in','color').attr('in2','blur').attr('operator','in').attr('result','glow');const m=f.append('feMerge');m.append('feMergeNode').attr('in','glow');m.append('feMergeNode').attr('in','SourceGraphic')});
-defs.append('marker').attr('id','arrow-pipeline').attr('viewBox','0 0 10 6').attr('refX',10).attr('refY',3).attr('markerWidth',8).attr('markerHeight',6).attr('orient','auto').append('path').attr('d','M0,0 L10,3 L0,6').attr('fill','rgba(168,85,247,.7)');
-defs.append('marker').attr('id','arrow-trigger').attr('viewBox','0 0 8 6').attr('refX',8).attr('refY',3).attr('markerWidth',6).attr('markerHeight',5).attr('orient','auto').append('path').attr('d','M0,0 L8,3 L0,6').attr('fill','rgba(168,85,247,.35)');
-
-const g=svg.append('g');
-const zoomBehavior=d3.zoom().scaleExtent([.2,4]).on('zoom',e=>g.attr('transform',e.transform));
-svg.call(zoomBehavior);
-svg.call(zoomBehavior.transform,d3.zoomIdentity.translate(width/2,height/2-40).scale(Math.min(width/1500,height/1000,1)*.85));
-
-// Zone containers
-const zones=[
-  {label:'AGENTS',x:-340,y:50,w:780,h:130,color:'#3b82f6'},
-  {label:'CRON JOBS',x:-620,y:-80,w:340,h:480,color:'#a855f7'},
-  {label:'TELEGRAM TOPICS',x:540,y:-100,w:300,h:480,color:'#ef4444'},
-  {label:'EXTERNAL SERVICES',x:60,y:440,w:620,h:110,color:'#94a3b8'},
-  {label:'Brief Pipeline',x:-680,y:120,w:150,h:230,color:'#a855f7',dashed:true},
-  {label:'Initiative Pipeline',x:-680,y:-60,w:150,h:140,color:'#a855f7',dashed:true},
-];
-const zoneGroup=g.append('g');
-zones.forEach(z=>{const zg=zoneGroup.append('g');zg.append('rect').attr('x',z.x-z.w/2).attr('y',z.y-z.h/2).attr('width',z.w).attr('height',z.h).attr('rx',12).attr('ry',12).attr('fill','none').attr('stroke',z.color).attr('stroke-opacity',z.dashed?.2:.1).attr('stroke-width',1).attr('stroke-dasharray',z.dashed?'6,4':null);zg.append('text').attr('x',z.x-z.w/2+10).attr('y',z.y-z.h/2+14).attr('fill',z.color).attr('fill-opacity',.3).attr('font-size',z.dashed?'.5rem':'.6rem').attr('letter-spacing',z.dashed?'.05em':'.15em').attr('font-weight',300).text(z.label.toUpperCase())});
-
-// Resolve links
-const nodeMap={};nodes.forEach(n=>nodeMap[n.id]=n);
-links.forEach(l=>{if(typeof l.source==='string')l.source=nodeMap[l.source];if(typeof l.target==='string')l.target=nodeMap[l.target]});
-
-function linkPath(d){
-  const sx=d.source.x,sy=d.source.y,tx=d.target.x,ty=d.target.y;
-  if(d.type==='pipeline') return 'M'+sx+','+sy+' L'+tx+','+ty;
-  const dx=tx-sx,dy=ty-sy;
-  const cx1=sx+dx*.4,cy1=sy+dy*.1,cx2=sx+dx*.6,cy2=ty-dy*.1;
-  return 'M'+sx+','+sy+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+tx+','+ty;
-}
-function linkStroke(d){
-  if(d.type==='pipeline') return 'rgba(168,85,247,.6)';
-  if(d.type==='trigger') return 'rgba(168,85,247,.25)';
-  if(d.type==='output') return 'rgba(239,68,68,.2)';
-  if(d.type==='data') return 'rgba(148,163,184,.18)';
-  return 'rgba(148,163,184,.1)';
+function render(){
+  calcPositions();
+  const validIds=new Set(Object.keys(nodePositions));
+  canvas.querySelectorAll('.node').forEach(el=>{
+    if(!validIds.has(el.dataset.id)){el.style.opacity='0';el.style.transform='scale(.8)';setTimeout(()=>el.remove(),350);}
+  });
+  for(const[id,pos]of Object.entries(nodePositions)){
+    let el=canvas.querySelector('.node[data-id="'+id+'"]');
+    const isTop=TOP_ORDER.includes(id);
+    const nd=isTop?NODES[id]:findChild(id);
+    if(!nd)continue;
+    if(!el){
+      el=document.createElement('div');
+      el.className='node '+(isTop?'top':nd.badge==='step'?'step':'child');
+      el.dataset.id=id;
+      el.innerHTML='<div class="emoji">'+nd.emoji+'</div><div class="name">'+nd.name+'</div><span class="badge '+nd.badge+'">'+nd.badgeText+'</span>'+(nd.desc?'<div class="desc">'+nd.desc+'</div>':'');
+      el.addEventListener('click',function(e){e.stopPropagation();handleClick(id)});
+      canvas.appendChild(el);
+      el.style.left=pos.x+'px';el.style.top=pos.y+'px';
+      requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('visible')));
+    } else {
+      el.style.left=pos.x+'px';el.style.top=pos.y+'px';
+    }
+    el.classList.toggle('expanded',!!expanded[id]);
+  }
+  renderLines();renderBreadcrumb();
 }
 
-const linkGroup=g.append('g');
-const linkElements=linkGroup.selectAll('path').data(links).join('path').attr('d',linkPath).attr('fill','none').attr('stroke',linkStroke).attr('stroke-width',d=>d.type==='pipeline'?2.5:d.type==='trigger'?1.2:1).attr('stroke-dasharray',d=>d.type==='data'?'4,3':null).attr('marker-end',d=>d.type==='pipeline'?'url(#arrow-pipeline)':d.type==='trigger'?'url(#arrow-trigger)':null);
+function findChild(id){for(const n of Object.values(NODES)){const f=(n.children||[]).find(c=>c.id===id);if(f)return f;}return null;}
 
-// Connection labels (skip route labels to reduce clutter)
-const linkLabelGroup=g.append('g');
-const labeledLinks=links.filter(l=>l.type!=='route'&&l.label);
-const linkLabels=linkLabelGroup.selectAll('text').data(labeledLinks).join('text').attr('x',d=>(d.source.x+d.target.x)/2).attr('y',d=>(d.source.y+d.target.y)/2-5).attr('text-anchor','middle').attr('font-size','.45rem').attr('fill',d=>{if(d.type==='pipeline')return 'rgba(168,85,247,.45)';if(d.type==='trigger')return 'rgba(168,85,247,.3)';if(d.type==='output')return 'rgba(239,68,68,.3)';return 'rgba(148,163,184,.25)'}).attr('pointer-events','none').text(d=>d.label);
-
-// Node cards
-const nodeGroup=g.append('g');
-const nodeElements=nodeGroup.selectAll('g').data(nodes).join('g').attr('transform',d=>'translate('+d.x+','+d.y+')').attr('cursor','pointer');
-
-nodeElements.append('rect').attr('x',d=>-cardSize(d).w/2).attr('y',d=>-cardSize(d).h/2).attr('width',d=>cardSize(d).w).attr('height',d=>cardSize(d).h).attr('rx',8).attr('ry',8).attr('fill',d=>(colorMap[d.type]||{fill:'#666'}).fill).attr('fill-opacity',.08).attr('stroke',d=>(colorMap[d.type]||{fill:'#666'}).fill).attr('stroke-width',d=>d.id==='main'?2:1.2).attr('stroke-opacity',.6).attr('filter',d=>'url(#glow-'+d.type+')');
-
-nodeElements.append('text').attr('x',d=>-cardSize(d).w/2+14).attr('y',1).attr('dominant-baseline','central').attr('font-size',d=>d.id==='main'?'1.1rem':d.type==='telegram'||d.type==='service'?'.7rem':'.85rem').attr('pointer-events','none').text(d=>d.emoji);
-
-nodeElements.append('text').attr('x',d=>-cardSize(d).w/2+(d.id==='main'?36:d.type==='telegram'||d.type==='service'?26:30)).attr('y',1).attr('dominant-baseline','central').attr('font-size',d=>d.id==='main'?'.75rem':d.type==='cron'||d.type==='telegram'||d.type==='service'?'.58rem':'.63rem').attr('fill',d=>(colorMap[d.type]||{fill:'#999'}).fill).attr('font-weight',d=>d.id==='main'?600:400).attr('pointer-events','none').text(d=>d.label);
-
-// Model sublabels
-nodeElements.filter(d=>d.model&&(d.type==='agent-opus'||d.type==='agent-sonnet'||d.type==='heartbeat')).append('text').attr('x',0).attr('y',d=>cardSize(d).h/2+11).attr('text-anchor','middle').attr('font-size','.48rem').attr('fill','var(--text2)').attr('fill-opacity',.45).attr('pointer-events','none').text(d=>d.model);
-
-// Schedule sublabels for crons
-nodeElements.filter(d=>d.schedule&&d.type==='cron').append('text').attr('x',0).attr('y',d=>cardSize(d).h/2+10).attr('text-anchor','middle').attr('font-size','.42rem').attr('fill','var(--text2)').attr('fill-opacity',.35).attr('pointer-events','none').text(d=>d.schedule);
-
-// Hover focus mode
-nodeElements.on('mouseenter',function(event,d){
-  const connIds=new Set([d.id]);const connLinkIdx=new Set();
-  links.forEach((l,i)=>{const s=l.source.id||l.source,t=l.target.id||l.target;if(s===d.id||t===d.id){connIds.add(s);connIds.add(t);connLinkIdx.add(i)}});
-  nodeElements.transition().duration(200).attr('opacity',n=>connIds.has(n.id)?1:.12);
-  linkElements.transition().duration(200).attr('opacity',(l,i)=>connLinkIdx.has(i)?1:.04);
-  linkLabels.transition().duration(200).attr('opacity',l=>{const s=l.source.id||l.source,t=l.target.id||l.target;return(s===d.id||t===d.id)?1:.04});
-  showTooltip(event,d);
-}).on('mouseleave',function(){
-  nodeElements.transition().duration(300).attr('opacity',1);
-  linkElements.transition().duration(300).attr('opacity',1);
-  linkLabels.transition().duration(300).attr('opacity',1);
-  hideTooltip();
-}).on('mousemove',function(event){const tt=document.getElementById('tooltip');tt.style.left=(event.clientX+14)+'px';tt.style.top=(event.clientY-10)+'px'});
-nodeElements.on('click',(event,d)=>{event.stopPropagation();openSidebar(d)});
-
-// Tooltip
-const tooltip=document.getElementById('tooltip');
-function showTooltip(e,d){let h='<strong>'+d.emoji+' '+d.label+'</strong>';if(d.model)h+='<br><span style="color:var(--text2)">'+d.model+'</span>';if(d.schedule)h+='<br><span style="color:var(--text2)">'+d.schedule+'</span>';if(d.threadId)h+='<br><span style="color:var(--text2)">Thread #'+d.threadId+'</span>';tooltip.innerHTML=h;tooltip.style.left=(e.clientX+14)+'px';tooltip.style.top=(e.clientY-10)+'px';tooltip.style.opacity='1'}
-function hideTooltip(){tooltip.style.opacity='0'}
-
-// Sidebar
-const sidebar=document.getElementById('sidebar'),sidebarContent=document.getElementById('sidebar-content');
-document.getElementById('sidebar-close').onclick=()=>sidebar.classList.remove('open');
-svg.on('click',()=>sidebar.classList.remove('open'));
-function openSidebar(d){
-  const c=(colorMap[d.type]||{fill:'#666'});
-  const connected=links.filter(l=>{const s=l.source.id||l.source,t=l.target.id||l.target;return s===d.id||t===d.id}).map(l=>{const s=l.source.id||l.source,t=l.target.id||l.target;const oid=s===d.id?t:s;const n=nodes.find(x=>x.id===oid);const dir=s===d.id?'\u2192':'\u2190';const lb=l.label||l.type;return dir+' '+(n?n.emoji+' '+n.label:oid)+' <span class="sb-tag">'+lb+'</span>'});
-  let h='<div class="sb-header"><div class="emoji">'+d.emoji+'</div><h2 style="color:'+c.fill+'">'+d.label+'</h2>'+(d.model?'<div class="model">'+d.model+'</div>':'')+(d.threadId?'<div class="model">Thread ID: '+d.threadId+'</div>':'')+'</div>';
-  if(d.desc)h+='<div class="sb-section"><h4>Description</h4><p class="sb-description">'+d.desc+'</p></div>';
-  if(d.workspace)h+='<div class="sb-section"><h4>Workspace</h4><p class="sb-description" style="font-family:monospace;font-size:.75rem">'+d.workspace+'</p></div>';
-  if(d.schedule)h+='<div class="sb-section"><h4>Schedule</h4><p class="sb-description">'+d.schedule+(d.agent?' \u00b7 Agent: '+d.agent:'')+'</p></div>';
-  if(d.files&&d.files.length)h+='<div class="sb-section"><h4>Key Files</h4><ul>'+d.files.map(f=>'<li>'+f+'</li>').join('')+'</ul></div>';
-  if(d.steps&&d.steps.length)h+='<div class="sb-section"><h4>Pipeline Steps</h4><ul>'+d.steps.map((s,i)=>'<li><span class="sb-tag">'+(i+1)+'</span> '+s+'</li>').join('')+'</ul></div>';
-  if(connected.length)h+='<div class="sb-section"><h4>Connections ('+connected.length+')</h4><ul>'+connected.map(c=>'<li>'+c+'</li>').join('')+'</ul></div>';
-  sidebarContent.innerHTML=h;sidebar.classList.add('open');
+function renderLines(){
+  svg.innerHTML='';
+  const ch=Math.max(canvas.scrollHeight,canvas.clientHeight);
+  svg.setAttribute('width',canvas.scrollWidth);svg.setAttribute('height',ch);
+  const jp=nodePositions.jarvis;if(!jp)return;
+  TOP_ORDER.forEach(id=>{
+    if(id==='jarvis')return;
+    const p=nodePositions[id];if(!p)return;
+    mkLine(jp.x+80,jp.y+90,p.x+80,p.y,expanded[id]?'active':'');
+  });
+  TOP_ORDER.forEach(pid=>{
+    if(!expanded[pid])return;
+    const pp=nodePositions[pid],node=NODES[pid];
+    (node.children||[]).forEach((child,i)=>{
+      const cp=nodePositions[child.id];if(!cp)return;
+      const pw=160,cw=child.badge==='step'?180:150;
+      mkLine(pp.x+pw/2,pp.y+90,cp.x+cw/2,cp.y,'active');
+      if(pid==='heartbeat'&&i>0){
+        const prev=nodePositions[node.children[i-1].id];
+        if(prev)mkLine(prev.x+90,prev.y+56,cp.x+90,cp.y,'step-line');
+      }
+      if(pid==='brief'&&['b-research','b-evaluator'].includes(child.id)){
+        const nextId=child.id==='b-research'?'b-evaluator':'b-delivery';
+        const np=nodePositions[nextId];
+        if(np)mkLine(cp.x+150,cp.y+36,np.x,np.y+36,'pipeline');
+      }
+    });
+  });
 }
-window.addEventListener('resize',()=>{width=window.innerWidth;height=window.innerHeight-56;svg.attr('width',width).attr('height',height)});
+
+function mkLine(x1,y1,x2,y2,cls){
+  const l=document.createElementNS('http://www.w3.org/2000/svg','line');
+  l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);
+  if(cls)cls.split(' ').forEach(c=>l.classList.add(c));
+  svg.appendChild(l);
+}
+
+function renderBreadcrumb(){
+  let h='<span class="active" onclick="collapseAll()">Jarvis System</span>';
+  Object.keys(expanded).filter(k=>expanded[k]).forEach(id=>{
+    const n=NODES[id];if(n)h+='<span class="sep">›</span><span class="active">'+n.emoji+' '+n.name+'</span>';
+  });
+  breadcrumbEl.innerHTML=h;
+}
+
+function handleClick(id){
+  if(TOP_ORDER.includes(id)&&NODES[id].children){
+    if(expanded[id]){delete expanded[id];removeChildren(id);}
+    else{Object.keys(expanded).forEach(k=>{removeChildren(k)});expanded={};expanded[id]=true;}
+    render();
+  } else {showSidebar(id);}
+}
+
+function removeChildren(id){(NODES[id].children||[]).forEach(c=>{const el=canvas.querySelector('.node[data-id="'+c.id+'"]');if(el){el.style.opacity='0';el.style.transform='scale(.8)';setTimeout(()=>el.remove(),350);}});}
+
+function collapseAll(){Object.keys(expanded).forEach(k=>removeChildren(k));expanded={};closeSidebar();render();}
+
+function showSidebar(id){
+  const isTop=TOP_ORDER.includes(id);
+  const nd=isTop?NODES[id]:findChild(id);if(!nd)return;
+  const d=nd.detail||{};
+  let h='<h2>'+nd.emoji+' '+nd.name+'</h2><div class="sub"><span class="badge '+nd.badge+'">'+nd.badgeText+'</span></div>';
+  if(d.description)h+='<div class="detail-section"><h3>Description</h3><div class="detail-item">'+d.description+'</div></div>';
+  if(d.schedule)h+='<div class="detail-section"><h3>Schedule</h3><div class="detail-item"><strong>'+d.schedule+'</strong></div></div>';
+  if(d.model)h+='<div class="detail-section"><h3>Model</h3><div class="detail-item">'+d.model+'</div></div>';
+  if(d.workspace)h+='<div class="detail-section"><h3>Workspace</h3><div class="detail-item" style="font-family:monospace;font-size:11px">'+d.workspace+'</div></div>';
+  if(d.files)h+='<div class="detail-section"><h3>Key Files</h3>'+d.files.map(f=>'<div class="detail-item" style="font-family:monospace;font-size:11px">'+f+'</div>').join('')+'</div>';
+  if(d.threadId)h+='<div class="detail-section"><h3>Thread ID</h3><div class="detail-item" style="font-family:monospace;font-size:11px">'+d.threadId+'</div></div>';
+  if(d.pipeline)h+='<div class="detail-section"><h3>Pipeline</h3><div class="detail-item">'+d.pipeline+'</div></div>';
+  if(d.url)h+='<div class="detail-section"><h3>URL</h3><div class="detail-item"><a href="'+d.url+'" style="color:#60a5fa" target="_blank">'+d.url+'</a></div></div>';
+  if(d.driveFolder)h+='<div class="detail-section"><h3>Drive Folder</h3><div class="detail-item" style="font-family:monospace;font-size:11px">'+d.driveFolder+'</div></div>';
+  document.getElementById('sidebar-content').innerHTML=h;
+  document.getElementById('sidebar').classList.add('open');
+}
+
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');}
+window.addEventListener('resize',()=>render());
+render();
 </script>
 </body>
 </html>
