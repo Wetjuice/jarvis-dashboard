@@ -3,286 +3,328 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jarvis System Architecture</title>
+<title>Jarvis — System Overview</title>
 <style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-  body{font-family:'Inter',system-ui,sans-serif;background:#0a0e17;color:#e2e8f0;min-height:100vh;overflow-x:hidden}
-  #breadcrumb{position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 24px;
-    background:linear-gradient(180deg,rgba(10,14,23,.95) 60%,transparent);
-    font-size:13px;color:#64748b;letter-spacing:.5px;display:flex;align-items:center;gap:8px}
-  #breadcrumb span{color:#94a3b8;cursor:pointer;transition:color .2s}
-  #breadcrumb span:hover{color:#e2e8f0}
-  #breadcrumb span.active{color:#e2e8f0}
-  #breadcrumb .sep{color:#334155;cursor:default}
-  #title{text-align:center;padding:72px 20px 0;opacity:.6;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#64748b}
-  #canvas{position:relative;width:100%;min-height:calc(100vh - 100px);padding:20px}
-  #lines{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1}
-  #lines line{stroke:#1e293b;stroke-width:1.5;fill:none;transition:all .5s cubic-bezier(.4,0,.2,1)}
-  #lines line.active{stroke:#334155;stroke-width:2}
-  #lines line.pipeline{stroke:#0e7490;stroke-width:2;stroke-dasharray:6 3}
-  #lines line.step-line{stroke:#22543d;stroke-width:1.5;stroke-dasharray:4 4}
-  .node{position:absolute;border-radius:16px;background:#111827;border:1px solid #1e293b;
-    cursor:pointer;transition:all .5s cubic-bezier(.4,0,.2,1);z-index:10;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    text-align:center;padding:16px 12px;user-select:none;opacity:0;transform:scale(.85) translateY(10px)}
-  .node.visible{opacity:1;transform:scale(1) translateY(0)}
-  .node:hover{border-color:#334155;transform:translateY(-2px)!important;box-shadow:0 8px 32px rgba(0,0,0,.4)}
-  .node.expanded{border-color:#475569;box-shadow:0 0 40px rgba(99,102,241,.08)}
-  .node.top{width:160px;height:90px}
-  .node.child{width:150px;height:72px}
-  .node.step{width:180px;height:56px}
-  .node .emoji{font-size:24px;margin-bottom:4px;line-height:1}
-  .node.child .emoji,.node.step .emoji{font-size:16px;margin-bottom:2px}
-  .node .name{font-weight:600;font-size:13px;line-height:1.2;margin-bottom:4px;color:#f1f5f9}
-  .node.child .name,.node.step .name{font-size:11px;font-weight:500}
-  .badge{font-size:9px;font-weight:600;padding:2px 8px;border-radius:99px;letter-spacing:.3px;text-transform:uppercase}
-  .badge.opus{background:rgba(234,179,8,.15);color:#facc15}
-  .badge.sonnet{background:rgba(59,130,246,.15);color:#60a5fa}
-  .badge.haiku{background:rgba(34,197,94,.15);color:#4ade80}
-  .badge.cron{background:rgba(168,85,247,.15);color:#c084fc}
-  .badge.telegram{background:rgba(239,68,68,.15);color:#f87171}
-  .badge.service{background:rgba(100,116,139,.15);color:#94a3b8}
-  .badge.pipeline{background:rgba(6,182,212,.15);color:#22d3ee}
-  .badge.step{background:rgba(34,197,94,.1);color:#4ade80}
-  .node .desc{font-size:10px;color:#64748b;margin-top:2px;line-height:1.2;max-width:140px}
-  #sidebar{position:fixed;right:0;top:0;bottom:0;width:340px;background:#0f1420;border-left:1px solid #1e293b;
-    z-index:200;transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);
-    padding:60px 24px 24px;overflow-y:auto;font-size:13px}
-  #sidebar.open{transform:translateX(0)}
-  #sidebar h2{font-size:16px;font-weight:600;margin-bottom:4px}
-  #sidebar .sub{margin-bottom:16px}
-  #sidebar .detail-section{margin-bottom:16px}
-  #sidebar .detail-section h3{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#475569;margin-bottom:8px}
-  #sidebar .detail-item{background:#111827;border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:12px;line-height:1.5;color:#94a3b8}
-  #sidebar .detail-item strong{color:#e2e8f0}
-  #sidebar-close{position:absolute;top:16px;right:16px;background:none;border:none;color:#64748b;cursor:pointer;font-size:20px;line-height:1}
-  @media(max-width:768px){
-    .node.top{width:110px;height:76px;padding:10px 6px}
-    .node .emoji{font-size:20px}
-    .node .name{font-size:10px}
-    .badge{font-size:7px;padding:1px 6px}
-    .node.child{width:110px;height:58px}
-    .node.step{width:130px;height:46px}
-    #sidebar{width:260px}
-    .node .desc{display:none}
-  }
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#0a0a0f;--surface:#12121a;--surface2:#1a1a26;--surface3:#222233;
+--border:#2a2a3a;--text:#e4e4ef;--text2:#8888a0;--text3:#55556a;
+--accent:#6366f1;--accent2:#818cf8;--accent-glow:rgba(99,102,241,.15);
+--green:#34d399;--amber:#fbbf24;--rose:#f43f5e;--cyan:#22d3ee;--purple:#a78bfa;
+--orange:#fb923c;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;overflow-x:hidden;line-height:1.5}
+a{color:var(--accent2);text-decoration:none}
+.nav{position:sticky;top:0;z-index:100;background:rgba(10,10,15,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:16px;justify-content:space-between;flex-wrap:wrap}
+.nav-brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:-.02em}
+.nav-brand .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.nav-tabs{display:flex;gap:4px;flex-wrap:wrap}
+.nav-tab{padding:6px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text2);transition:.2s;border:none;background:none}
+.nav-tab:hover{color:var(--text);background:var(--surface2)}
+.nav-tab.active{color:var(--text);background:var(--surface2)}
+.nav-time{font-size:12px;color:var(--text3);font-variant-numeric:tabular-nums}
+.view{display:none;padding:20px;max-width:1200px;margin:0 auto}
+.view.active{display:block}
+.section-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin:24px 0 12px;padding-left:2px}
+.section-title:first-child{margin-top:0}
+.agents-grid{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:640px){.agents-grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:960px){.agents-grid{grid-template-columns:repeat(3,1fr)}}
+.agent-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;cursor:pointer;transition:.2s;position:relative;overflow:hidden}
+.agent-card:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 24px rgba(0,0,0,.3)}
+.agent-card.expanded{grid-column:1/-1}
+.agent-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.agent-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.agent-name{font-weight:600;font-size:15px}
+.agent-model{font-size:11px;color:var(--text3);font-family:'SF Mono',Monaco,monospace;margin-top:2px}
+.agent-role{font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.4}
+.agent-connections{display:flex;flex-wrap:wrap;gap:6px}
+.conn-tag{font-size:11px;padding:3px 8px;border-radius:6px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);white-space:nowrap}
+.conn-tag.telegram{border-color:#2a9ed6;color:#54b8e8}
+.conn-tag.api{border-color:#6366f1;color:var(--accent2)}
+.conn-tag.github{border-color:#555;color:#ccc}
+.agent-detail{display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
+.agent-card.expanded .agent-detail{display:block}
+.detail-section{margin-bottom:14px}
+.detail-section h4{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:6px}
+.file-list{display:flex;flex-wrap:wrap;gap:4px}
+.file-tag{font-size:11px;padding:2px 7px;border-radius:4px;background:var(--surface3);color:var(--text2);font-family:'SF Mono',Monaco,monospace}
+.pipeline-flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pipeline-step{font-size:12px;padding:4px 10px;border-radius:6px;background:var(--accent-glow);color:var(--accent2);border:1px solid rgba(99,102,241,.2)}
+.pipeline-arrow{color:var(--text3);font-size:14px}
+.heartbeat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;margin-top:12px}
+.hb-header{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.hb-icon{font-size:20px;animation:pulse 2s infinite}
+.hb-steps{display:grid;gap:6px}
+.hb-step{display:flex;align-items:flex-start;gap:10px;padding:8px 12px;border-radius:8px;background:var(--surface2);font-size:13px;cursor:pointer;transition:.15s}
+.hb-step:hover{background:var(--surface3)}
+.hb-num{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;background:var(--surface3);color:var(--text2)}
+.hb-step-info{flex:1}
+.hb-step-name{font-weight:600;font-size:13px}
+.hb-step-detail{font-size:11px;color:var(--text3);margin-top:2px;display:none}
+.hb-step.expanded .hb-step-detail{display:block}
+.hb-freq{font-size:10px;color:var(--text3);white-space:nowrap;font-family:'SF Mono',Monaco,monospace}
+.timeline-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.timeline-inner{min-width:600px}
+.timeline-header{display:flex;padding:0 0 8px 140px;border-bottom:1px solid var(--border);margin-bottom:8px}
+.timeline-hour{flex:1;font-size:10px;color:var(--text3);text-align:left;font-variant-numeric:tabular-nums}
+@media(max-width:640px){.timeline-header{padding-left:80px}.timeline-label{width:80px!important;font-size:11px!important}}
+.timeline-row{display:flex;align-items:center;padding:6px 0;position:relative;min-height:36px}
+.timeline-label{width:140px;flex-shrink:0;font-size:12px;font-weight:500;padding-right:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.timeline-track{flex:1;position:relative;height:28px;background:var(--surface);border-radius:6px;overflow:hidden}
+.timeline-block{position:absolute;top:3px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:rgba(255,255,255,.9);cursor:pointer;transition:.15s;min-width:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 6px}
+.timeline-block:hover{transform:scaleY(1.15);z-index:2;filter:brightness(1.2)}
+.timeline-tooltip{display:none;position:fixed;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:12px;z-index:200;pointer-events:none;max-width:280px;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+.timeline-tooltip.show{display:block}
+.timeline-tooltip h4{font-weight:600;margin-bottom:4px}
+.timeline-tooltip p{color:var(--text2);font-size:11px;line-height:1.4}
+.timeline-now{position:absolute;top:0;bottom:0;width:2px;background:var(--rose);z-index:10;pointer-events:none}
+.timeline-now::after{content:'NOW';position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:8px;font-weight:700;color:var(--rose);letter-spacing:.05em}
+.hb-bar{background:repeating-linear-gradient(90deg,var(--green) 0,var(--green) 2px,transparent 2px,transparent 8px);opacity:.25;top:3px;height:22px;border-radius:5px;position:absolute}
+.channels-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.channel-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;transition:.2s}
+.channel-card:hover{border-color:var(--cyan);background:var(--surface2)}
+.channel-icon{font-size:24px;margin-bottom:6px}
+.channel-name{font-size:13px;font-weight:600}
+.channel-id{font-size:10px;color:var(--text3);font-family:'SF Mono',Monaco,monospace;margin-top:2px}
+.channel-agents{margin-top:8px;display:flex;flex-wrap:wrap;gap:3px;justify-content:center}
+.channel-agent-dot{width:18px;height:18px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:9px}
+.service-row{display:flex;align-items:center;gap:16px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;transition:.15s}
+.service-row:hover{border-color:var(--accent);background:var(--surface2)}
+.service-icon{font-size:22px;width:40px;text-align:center;flex-shrink:0}
+.service-info{flex:1;min-width:0}
+.service-name{font-weight:600;font-size:14px}
+.service-desc{font-size:12px;color:var(--text2);margin-top:2px}
+.service-agents{display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap}
+.service-agent-pill{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}
+.flow-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px}
+.flow-card:hover{border-color:var(--purple)}
+.flow-name{font-weight:600;font-size:14px;margin-bottom:10px}
+.flow-steps{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.flow-step{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:12px;border:1px solid var(--border);background:var(--surface2)}
+.flow-step-icon{font-size:14px}
+.flow-step-time{font-size:10px;color:var(--text3);font-family:'SF Mono',Monaco,monospace}
+.flow-arrow{color:var(--text3)}
 </style>
 </head>
 <body>
-<div id="breadcrumb"><span class="active" onclick="collapseAll()">Jarvis System</span></div>
-<div id="title">System Architecture · V3</div>
-<div id="canvas"><svg id="lines"></svg></div>
-<div id="sidebar">
-  <button id="sidebar-close" onclick="closeSidebar()">&times;</button>
-  <div id="sidebar-content"></div>
+<nav class="nav">
+  <div class="nav-brand"><span class="dot"></span> Jarvis</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" data-view="agents">Agents</button>
+    <button class="nav-tab" data-view="schedule">Schedule</button>
+    <button class="nav-tab" data-view="channels">Channels</button>
+    <button class="nav-tab" data-view="services">Services</button>
+    <button class="nav-tab" data-view="flows">Data Flows</button>
+  </div>
+  <div class="nav-time" id="clock"></div>
+</nav>
+
+<div class="view active" id="view-agents">
+  <div class="section-title">Agents</div>
+  <div class="agents-grid" id="agents-grid"></div>
+  <div class="section-title">Heartbeat System</div>
+  <div class="heartbeat-card">
+    <div class="hb-header">
+      <span class="hb-icon">💓</span>
+      <div>
+        <div style="font-weight:600;font-size:15px">Heartbeat Monitor</div>
+        <div style="font-size:12px;color:var(--text3)">Claude Haiku 4.5 · Every 60 min · 24/7</div>
+      </div>
+    </div>
+    <div class="hb-steps" id="hb-steps"></div>
+  </div>
 </div>
+
+<div class="view" id="view-schedule">
+  <div class="section-title">24-Hour Schedule</div>
+  <div class="timeline-scroll">
+    <div class="timeline-inner">
+      <div class="timeline-header" id="timeline-header"></div>
+      <div id="timeline-rows"></div>
+    </div>
+  </div>
+</div>
+
+<div class="view" id="view-channels">
+  <div class="section-title">Telegram Topics</div>
+  <p style="font-size:12px;color:var(--text3);margin-bottom:16px">Group: -1003798176791 · 12 topic channels routing messages between agents and systems</p>
+  <div class="channels-grid" id="channels-grid"></div>
+</div>
+
+<div class="view" id="view-services">
+  <div class="section-title">External Services</div>
+  <div id="services-list"></div>
+</div>
+
+<div class="view" id="view-flows">
+  <div class="section-title">Data Flows</div>
+  <div id="flows-list"></div>
+</div>
+
+<div class="timeline-tooltip" id="tooltip"></div>
+
 <script>
-const NODES={
-  jarvis:{id:'jarvis',emoji:'🤖',name:'Jarvis',badge:'opus',badgeText:'Opus 4.6',desc:'Main Orchestrator',
-    detail:{description:'Central orchestrator and primary intelligence. Manages all sub-agents, cron scheduling, memory consolidation, and direct interaction with Mr. Berman.',workspace:'/home/jarvis/.openclaw/workspace',files:['SOUL.md','AGENTS.md','MEMORY.md','TOOLS.md','SAFETY.md','IDENTITY.md'],threadId:'-1003798176791:topic:2'},
-    children:[
-      {id:'c-dream',emoji:'🌙',name:'Dream Cycle',badge:'cron',badgeText:'Cron',desc:'3:00 AM · Opus',detail:{schedule:'0 3 * * *',model:'claude-opus-4-6',description:'Nightly memory consolidation — reviews daily memory files, promotes important patterns to MEMORY.md, prunes stale entries.'}},
-      {id:'c-selfrepair',emoji:'🔧',name:'Self-Repair',badge:'cron',badgeText:'Cron',desc:'4:00 AM · Opus',detail:{schedule:'0 4 * * *',model:'claude-opus-4-6',description:'Automated self-healing — checks workspace integrity, fixes broken configs, validates tool connections.'}},
-      {id:'c-nightly',emoji:'🚀',name:'Nightly Initiative',badge:'cron',badgeText:'Cron',desc:'2:00 AM · Opus',detail:{schedule:'0 2 * * *',model:'claude-opus-4-6',description:'Proactive improvement cycle — identifies optimization opportunities, proposes system enhancements. Delivers report to Telegram.'}},
-      {id:'c-secdigest',emoji:'📋',name:'Security Digest',badge:'cron',badgeText:'Cron',desc:'6:00 AM · Sonnet',detail:{schedule:'0 6 * * *',model:'claude-sonnet-4-5',description:'Daily security summary — compiles overnight scan results, flags anomalies.'}},
-      {id:'c-secscan',emoji:'🛡️',name:'Security Scan',badge:'cron',badgeText:'Cron',desc:'Every 6h · Haiku',detail:{schedule:'0 */6 * * *',model:'claude-haiku-4-5',description:'Periodic security sweep — SSH logs, firewall, open ports, failed auth.'}},
-      {id:'c-version',emoji:'📦',name:'Version Check',badge:'cron',badgeText:'Cron',desc:'Weekly · Haiku',detail:{schedule:'0 5 * * 1',model:'claude-haiku-4-5',description:'Weekly dependency and version audit — OpenClaw, Node.js, system packages.'}},
-      {id:'c-selfimprove',emoji:'💡',name:'Self-Improvement',badge:'cron',badgeText:'Cron',desc:'Daily · Opus',detail:{schedule:'0 1 * * *',model:'claude-opus-4-6',description:'Research new OpenClaw features, optimize prompts, improve workflows.'}},
-      {id:'t-main',emoji:'💬',name:'Main Orchestrator',badge:'telegram',badgeText:'Topic',desc:'Thread ID: 2'},
-      {id:'t-modelopt',emoji:'💬',name:'Model Optimization',badge:'telegram',badgeText:'Topic',desc:'Thread ID: 638'},
-      {id:'t-security',emoji:'💬',name:'Security & Infra',badge:'telegram',badgeText:'Topic',desc:'Thread ID: 936'},
-      {id:'s-gmail',emoji:'📧',name:'Gmail',badge:'service',badgeText:'Service',desc:'bermanjarvismk3'},
-      {id:'s-todoist',emoji:'✅',name:'Todoist',badge:'service',badgeText:'Service',desc:'Task board'}
-    ]},
-  brief:{id:'brief',emoji:'📰',name:'Daily Brief',badge:'sonnet',badgeText:'Sonnet 4.5',desc:'Intelligence Briefing',
-    detail:{description:'Three-stage intelligence pipeline delivering a curated daily briefing covering tech, AI, markets, and topics of interest.',workspace:'/home/jarvis/.openclaw/workspace',files:['crons/brief-research.md','crons/brief-evaluator.md','crons/brief-delivery.md'],threadId:'-1003798176791:topic:534'},
-    children:[
-      {id:'b-research',emoji:'🔍',name:'Brief Research',badge:'pipeline',badgeText:'Stage 1',desc:'6:00 AM · Sonnet',detail:{schedule:'0 6 * * *',model:'claude-sonnet-4-5',description:'Gathers raw intelligence from web search, Twitter API, RSS feeds.',pipeline:'→ Evaluator'}},
-      {id:'b-evaluator',emoji:'⚖️',name:'Brief Evaluator',badge:'pipeline',badgeText:'Stage 2',desc:'6:15 AM · Opus',detail:{schedule:'15 6 * * *',model:'claude-opus-4-6',description:'Scores and filters research bundle. Ranks by relevance, structures final brief.',pipeline:'→ Delivery'}},
-      {id:'b-delivery',emoji:'📨',name:'Brief Delivery',badge:'pipeline',badgeText:'Stage 3',desc:'6:30 AM · Sonnet',detail:{schedule:'30 6 * * *',model:'claude-sonnet-4-5',description:'Formats and delivers final briefing to Telegram Daily Brief topic.',pipeline:'End'}},
-      {id:'bt-brief',emoji:'💬',name:'Daily Brief',badge:'telegram',badgeText:'Topic',desc:'Thread ID: 534'},
-      {id:'bs-gmail',emoji:'📧',name:'Gmail',badge:'service',badgeText:'Service',desc:'Newsletter sources'},
-      {id:'bs-twitter',emoji:'🐦',name:'Twitter API',badge:'service',badgeText:'Service',desc:'X/Twitter intel'}
-    ]},
-  career:{id:'career',emoji:'💼',name:'Career Coach',badge:'sonnet',badgeText:'Sonnet 4.5',desc:'Career Strategy',
-    detail:{description:'Strategic career advisor — monitors job markets, refines resume/positioning, tracks applications, provides coaching.',threadId:'-1003798176791:topic:316'},
-    children:[
-      {id:'ct-coach',emoji:'💬',name:'CareerCoach',badge:'telegram',badgeText:'Topic',desc:'Thread ID: 316'},
-      {id:'ct-intel',emoji:'💬',name:'CareerIntel',badge:'telegram',badgeText:'Topic',desc:'Thread ID: 748'},
-      {id:'cs-todoist',emoji:'✅',name:'Todoist',badge:'service',badgeText:'Service',desc:'Application tracking'}
-    ]},
-  portfolio:{id:'portfolio',emoji:'🎨',name:'Portfolio Builder',badge:'opus',badgeText:'Opus 4.6',desc:'Portfolio Site',
-    detail:{description:"Builds and maintains Mr. Berman's personal portfolio website. Manages versioning, deployment via GitHub Pages.",url:'https://wetjuice.github.io/mberman-portfolio/',threadId:'-1003798176791:topic:470'},
-    children:[
-      {id:'pt-portfolio',emoji:'💬',name:'Portfolio',badge:'telegram',badgeText:'Topic',desc:'Thread ID: 470'},
-      {id:'ps-github',emoji:'🐙',name:'GitHub Pages',badge:'service',badgeText:'Service',desc:'wetjuice.github.io'}
-    ]},
-  realestate:{id:'realestate',emoji:'🏠',name:'Real Estate',badge:'sonnet',badgeText:'Sonnet 4.5',desc:'Property Intel',
-    detail:{description:'Property intelligence — researches neighborhoods, schools, open houses, market data. Reports to Google Drive.',driveFolder:'1ms0GBrkE1lA-wNJzOXzBVuzrkAYuQxkN',threadId:'-1003798176791:topic:818'},
-    children:[
-      {id:'rt-realestate',emoji:'💬',name:'RealEstate',badge:'telegram',badgeText:'Topic',desc:'Thread ID: 818'},
-      {id:'rs-drive',emoji:'📁',name:'Google Drive',badge:'service',badgeText:'Service',desc:'Property docs'}
-    ]},
-  heartbeat:{id:'heartbeat',emoji:'💓',name:'Heartbeat',badge:'haiku',badgeText:'Haiku 4.5',desc:'System Monitor',
-    detail:{description:'10-step monitoring pipeline running every 30 minutes. Checks system health, email, tasks, memory state.',schedule:'Every 30 min',model:'claude-haiku-4-5'},
-    children:[
-      {id:'h1',emoji:'⏱️',name:'Time Gate',badge:'step',badgeText:'Step 1',desc:'Elapsed time check'},
-      {id:'h2',emoji:'📂',name:'Load State',badge:'step',badgeText:'Step 2',desc:'Read state file'},
-      {id:'h3',emoji:'📧',name:'Email Check',badge:'step',badgeText:'Step 3',desc:'Urgent unread scan'},
-      {id:'h4',emoji:'🖥️',name:'Hardware Health',badge:'step',badgeText:'Step 4',desc:'CPU, RAM, temp'},
-      {id:'h5',emoji:'💾',name:'Disk Space',badge:'step',badgeText:'Step 5',desc:'Storage check'},
-      {id:'h6',emoji:'✅',name:'Todoist Check',badge:'step',badgeText:'Step 6',desc:'Active tasks'},
-      {id:'h7',emoji:'🏠',name:'Open House Detect',badge:'step',badgeText:'Step 7',desc:'New listings'},
-      {id:'h8',emoji:'🧠',name:'Memory Maint.',badge:'step',badgeText:'Step 8',desc:'Prune & consolidate'},
-      {id:'h9',emoji:'📊',name:'Log Usage',badge:'step',badgeText:'Step 9',desc:'Token tracking'},
-      {id:'h10',emoji:'💾',name:'Update State',badge:'step',badgeText:'Step 10',desc:'Write state file'}
-    ]}
-};
+const agents = [
+  {id:'jarvis',name:'Jarvis',emoji:'🎩',role:'Primary orchestrator — conversations, task management, system stewardship',model:'Claude Opus 4.6',color:'var(--accent)',workspace:'~/.openclaw/workspace',files:['MEMORY.md','AGENTS.md','SOUL.md','HEARTBEAT.md','TOOLS.md','SAFETY.md','USER.md','IDENTITY.md'],dirs:['memory/*.md','gmail/','scripts/','cron/','twitter/','docs/','security/'],connections:[{name:'ALL Telegram topics',type:'telegram'},{name:'Gmail API',type:'api'},{name:'Todoist API',type:'api'},{name:'Google Drive',type:'api'}]},
+  {id:'brief',name:'Daily Brief',emoji:'📰',role:'Daily intelligence briefing — research, evaluation, delivery pipeline',model:'Claude Sonnet 4.5',color:'var(--cyan)',workspace:'~/.openclaw/workspace-daily-brief',files:['FORMAT-EMAIL.md','CONFIG.md','evaluator-prompt.md'],dirs:['briefs/','engagement/','scripts/'],pipeline:['Research 6:30AM','Evaluator 6:45AM','Delivery 7:00AM'],connections:[{name:'Brief topic',type:'telegram'},{name:'Gmail',type:'api'},{name:'TwitterAPI.io',type:'api'}]},
+  {id:'career',name:'Career Coach',emoji:'💼',role:'Career strategy, job search, career intel',model:'Claude Sonnet 4.5',color:'var(--amber)',workspace:'~/.openclaw/workspace-career-coach',files:['MIKE-BERMAN-PROFILE.md','architecture.md','job-recommendations.md','linkedin-profile.md'],dirs:['profile/','tracking/','portfolio/'],connections:[{name:'CareerCoach topic',type:'telegram'},{name:'CareerIntel topic',type:'telegram'},{name:'Todoist',type:'api'}]},
+  {id:'portfolio',name:'Portfolio Builder',emoji:'🎨',role:'Portfolio website development',model:'Claude Opus 4.6',color:'var(--purple)',workspace:'~/.openclaw/workspace-portfolio-builder',files:['design-system.md','tech-stack.md','portfolio/BRIEF.md','MIKE-BERMAN-PROFILE.md'],dirs:[],connections:[{name:'Portfolio topic',type:'telegram'},{name:'GitHub',type:'github'}]},
+  {id:'realestate',name:'Real Estate',emoji:'🏠',role:'Property intelligence briefs, open house research',model:'Claude Sonnet 4.5',color:'var(--green)',workspace:'~/.openclaw/workspace-real-estate',files:['AGENTS.md','memory/real-estate-preferences.md'],dirs:[],trigger:'Heartbeat step 7 (calendar open house detection)',connections:[{name:'RealEstate topic',type:'telegram'},{name:'Google Drive',type:'api'}]}
+];
 
-const TOP_ORDER=['jarvis','brief','career','portfolio','realestate','heartbeat'];
-let expanded={},nodePositions={};
-const canvas=document.getElementById('canvas'),svg=document.getElementById('lines'),breadcrumbEl=document.getElementById('breadcrumb');
+const heartbeatSteps = [
+  {num:1,name:'Time Gate',detail:'Determines day (06-23) vs overnight (23-06) mode',freq:'every beat'},
+  {num:2,name:'Load State',detail:'Reads heartbeat-state.json',freq:'every beat'},
+  {num:3,name:'Email Check',detail:'Gmail API → alerts to Email topic (threadId=6)',freq:'50 min, day'},
+  {num:4,name:'Hardware Health',detail:'Runs hardware-health.sh → alerts to SysHealth topic',freq:'4h'},
+  {num:5,name:'Disk Space',detail:'Runs df -h / → alerts to SysHealth topic',freq:'4h'},
+  {num:6,name:'Todoist Tasks',detail:'Todoist API → spawns sub-agents → Tasks (19) + Main (2)',freq:'1h day/2h night'},
+  {num:7,name:'Open House Detection',detail:'Calendar API → triggers real-estate agent → RealEstate topic',freq:'every beat, day'},
+  {num:8,name:'Memory Maintenance',detail:'Reads/writes MEMORY.md — consolidation',freq:'72h'},
+  {num:9,name:'Log Usage',detail:'Writes heartbeat log',freq:'every beat'},
+  {num:10,name:'Update State',detail:'Writes heartbeat-state.json',freq:'every beat'}
+];
 
-function calcPositions(){
-  nodePositions={};
-  const W=canvas.getBoundingClientRect().width;
-  const topCount=TOP_ORDER.length;
-  const spacing=Math.min(200,(W-40)/topCount);
-  const startX=(W-spacing*(topCount-1))/2-80;
-  const topY=120;
-  let maxBottom=topY+110;
+const cronJobs = [
+  {name:'Dream Cycle',hour:2,duration:.75,agent:'main',model:'Opus',desc:'Memory consolidation, system cleanup',color:'var(--purple)'},
+  {name:'Self-Repair',hour:3,duration:.5,agent:'default',model:'—',desc:'Fix broken configs, clear errors',color:'#666'},
+  {name:'Nightly Initiative',hour:4,duration:1.5,agent:'main',model:'Opus 4.6',desc:'Self-directed creative project',color:'var(--accent)'},
+  {name:'Initiative Delivery',hour:6,duration:.25,agent:'main',model:'Haiku',desc:'Delivers initiative summary',color:'var(--accent2)'},
+  {name:'Brief Research',hour:6.5,duration:.25,agent:'daily-brief',model:'Sonnet',desc:'Gathers intel from web, Twitter, HN',color:'var(--cyan)'},
+  {name:'Brief Evaluator',hour:6.75,duration:.25,agent:'daily-brief',model:'Opus 4.6',desc:'Deep analysis of research',color:'var(--cyan)'},
+  {name:'Brief Delivery',hour:7,duration:.25,agent:'daily-brief',model:'Sonnet',desc:'Compiles HTML brief, sends email',color:'var(--cyan)'},
+  {name:'Security Digest',hour:8,duration:.5,agent:'main',model:'—',desc:'Weekly security summary (Mon)',color:'var(--rose)',weekly:'Mon'},
+  {name:'Security Scan',hour:9,duration:.5,agent:'default',model:'—',desc:'Automated security audit (Mon)',color:'var(--rose)',weekly:'Mon'},
+  {name:'Version Check',hour:10,duration:.15,agent:'main',model:'—',desc:'Check for OpenClaw updates',color:'var(--green)'},
+  {name:'Self-Improvement',hour:14,duration:1,agent:'default',model:'Opus',desc:'System optimization audit (Sun)',color:'var(--orange)',weekly:'Sun'}
+];
 
-  TOP_ORDER.forEach((id,i)=>{
-    const x=startX+i*spacing;
-    nodePositions[id]={x,y:topY};
-    if(expanded[id]){
-      const children=NODES[id].children||[];
-      if(id==='heartbeat'){
-        children.forEach((c,ci)=>{nodePositions[c.id]={x:x-10,y:topY+120+ci*68}});
-        maxBottom=Math.max(maxBottom,topY+120+children.length*68+40);
-      } else {
-        const cols=Math.min(3,children.length);
-        const cSpacing=170;
-        const cStartX=x+80-((Math.min(cols,children.length)-1)*cSpacing)/2;
-        children.forEach((c,ci)=>{
-          nodePositions[c.id]={x:cStartX+(ci%cols)*cSpacing-75,y:topY+120+Math.floor(ci/cols)*90};
-        });
-        maxBottom=Math.max(maxBottom,topY+120+Math.ceil(children.length/cols)*90+40);
-      }
-    }
-  });
-  canvas.style.minHeight=(maxBottom+40)+'px';
-}
+const channels = [
+  {name:'Main',id:2,emoji:'💬',agents:['jarvis']},
+  {name:'Brief',id:3,emoji:'📰',agents:['brief']},
+  {name:'ModelOpt',id:4,emoji:'⚙️',agents:['jarvis']},
+  {name:'SysHealth',id:5,emoji:'🖥️',agents:['jarvis']},
+  {name:'Email',id:6,emoji:'📧',agents:['jarvis']},
+  {name:'Research',id:18,emoji:'🔬',agents:['jarvis']},
+  {name:'Tasks',id:19,emoji:'📋',agents:['jarvis']},
+  {name:'Portfolio',id:134,emoji:'🎨',agents:['portfolio']},
+  {name:'GameDev',id:204,emoji:'🎮',agents:['jarvis']},
+  {name:'CareerCoach',id:760,emoji:'💼',agents:['career']},
+  {name:'CareerIntel',id:1313,emoji:'🕵️',agents:['career']},
+  {name:'RealEstate',id:1613,emoji:'🏠',agents:['realestate']}
+];
 
-function render(){
-  calcPositions();
-  const validIds=new Set(Object.keys(nodePositions));
-  canvas.querySelectorAll('.node').forEach(el=>{
-    if(!validIds.has(el.dataset.id)){el.style.opacity='0';el.style.transform='scale(.8)';setTimeout(()=>el.remove(),350);}
-  });
-  for(const[id,pos]of Object.entries(nodePositions)){
-    let el=canvas.querySelector('.node[data-id="'+id+'"]');
-    const isTop=TOP_ORDER.includes(id);
-    const nd=isTop?NODES[id]:findChild(id);
-    if(!nd)continue;
-    if(!el){
-      el=document.createElement('div');
-      el.className='node '+(isTop?'top':nd.badge==='step'?'step':'child');
-      el.dataset.id=id;
-      el.innerHTML='<div class="emoji">'+nd.emoji+'</div><div class="name">'+nd.name+'</div><span class="badge '+nd.badge+'">'+nd.badgeText+'</span>'+(nd.desc?'<div class="desc">'+nd.desc+'</div>':'');
-      el.addEventListener('click',function(e){e.stopPropagation();handleClick(id)});
-      canvas.appendChild(el);
-      el.style.left=pos.x+'px';el.style.top=pos.y+'px';
-      requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('visible')));
-    } else {
-      el.style.left=pos.x+'px';el.style.top=pos.y+'px';
-    }
-    el.classList.toggle('expanded',!!expanded[id]);
-  }
-  renderLines();renderBreadcrumb();
-}
+const services = [
+  {name:'Gmail API',icon:'📧',desc:'bermanjarvismk3@gmail.com — email check, send, calendar',agents:['Jarvis','Daily Brief'],colors:['var(--accent)','var(--cyan)']},
+  {name:'Google Drive',icon:'📁',desc:'Shared Jarvis folder + 🏠 Real Estate subfolder',agents:['Jarvis','Real Estate'],colors:['var(--accent)','var(--green)']},
+  {name:'Todoist API',icon:'✅',desc:'Task board: Backlog → In Progress → Waiting → Completed → Icebox',agents:['Jarvis','Career Coach'],colors:['var(--accent)','var(--amber)']},
+  {name:'TwitterAPI.io',icon:'🐦',desc:'X/Twitter read-only intel for daily brief research',agents:['Daily Brief'],colors:['var(--cyan)']},
+  {name:'GitHub',icon:'🐙',desc:'Wetjuice/mberman-portfolio — portfolio repo + game repos',agents:['Portfolio Builder'],colors:['var(--purple)']}
+];
 
-function findChild(id){for(const n of Object.values(NODES)){const f=(n.children||[]).find(c=>c.id===id);if(f)return f;}return null;}
+const flows = [
+  {name:'📰 Daily Brief Pipeline',steps:[{icon:'🔍',label:'Research',time:'6:30 AM',detail:'Web, Twitter, HN intel gathering'},{icon:'🧠',label:'Evaluator',time:'6:45 AM',detail:'Deep analysis with Opus 4.6'},{icon:'📬',label:'Delivery',time:'7:00 AM',detail:'HTML brief → Gmail + Telegram'}]},
+  {name:'💡 Nightly Initiative Pipeline',steps:[{icon:'🌙',label:'Initiative',time:'4:00 AM',detail:'Self-directed creative project'},{icon:'📨',label:'Delivery',time:'6:00 AM',detail:'Summary delivered to Mr. Berman'}]},
+  {name:'💓 Heartbeat → Real Estate Trigger',steps:[{icon:'💓',label:'Heartbeat',time:'Every 60m',detail:'Step 7: Calendar check'},{icon:'📅',label:'Open House Detected',time:'',detail:'Calendar API finds event'},{icon:'🏠',label:'Real Estate Agent',time:'',detail:'Property brief generated'},{icon:'📱',label:'Telegram',time:'',detail:'Report to RealEstate topic'}]},
+  {name:'🧹 Overnight Maintenance',steps:[{icon:'🌙',label:'Dream Cycle',time:'2:00 AM',detail:'Memory consolidation'},{icon:'🔧',label:'Self-Repair',time:'3:00 AM',detail:'Fix configs, clear errors'},{icon:'💡',label:'Initiative',time:'4:00 AM',detail:'Creative project work'}]}
+];
 
-function renderLines(){
-  svg.innerHTML='';
-  const ch=Math.max(canvas.scrollHeight,canvas.clientHeight);
-  svg.setAttribute('width',canvas.scrollWidth);svg.setAttribute('height',ch);
-  const jp=nodePositions.jarvis;if(!jp)return;
-  TOP_ORDER.forEach(id=>{
-    if(id==='jarvis')return;
-    const p=nodePositions[id];if(!p)return;
-    mkLine(jp.x+80,jp.y+90,p.x+80,p.y,expanded[id]?'active':'');
-  });
-  TOP_ORDER.forEach(pid=>{
-    if(!expanded[pid])return;
-    const pp=nodePositions[pid],node=NODES[pid];
-    (node.children||[]).forEach((child,i)=>{
-      const cp=nodePositions[child.id];if(!cp)return;
-      const pw=160,cw=child.badge==='step'?180:150;
-      mkLine(pp.x+pw/2,pp.y+90,cp.x+cw/2,cp.y,'active');
-      if(pid==='heartbeat'&&i>0){
-        const prev=nodePositions[node.children[i-1].id];
-        if(prev)mkLine(prev.x+90,prev.y+56,cp.x+90,cp.y,'step-line');
-      }
-      if(pid==='brief'&&['b-research','b-evaluator'].includes(child.id)){
-        const nextId=child.id==='b-research'?'b-evaluator':'b-delivery';
-        const np=nodePositions[nextId];
-        if(np)mkLine(cp.x+150,cp.y+36,np.x,np.y+36,'pipeline');
-      }
-    });
+// Render
+const agentsGrid = document.getElementById('agents-grid');
+agents.forEach(a => {
+  const card = document.createElement('div');
+  card.className = 'agent-card';
+  card.innerHTML = `
+    <div class="agent-header">
+      <div class="agent-icon" style="background:${a.color}22;color:${a.color}">${a.emoji}</div>
+      <div><div class="agent-name">${a.name}</div><div class="agent-model">${a.model}</div></div>
+    </div>
+    <div class="agent-role">${a.role}</div>
+    <div class="agent-connections">${a.connections.map(c=>'<span class="conn-tag '+c.type+'">'+c.name+'</span>').join('')}</div>
+    <div class="agent-detail">
+      <div class="detail-section"><h4>Workspace</h4><div class="file-tag" style="margin-bottom:8px">${a.workspace}</div></div>
+      <div class="detail-section"><h4>Key Files</h4><div class="file-list">${a.files.map(f=>'<span class="file-tag">'+f+'</span>').join('')}</div></div>
+      ${a.dirs&&a.dirs.length?'<div class="detail-section"><h4>Directories</h4><div class="file-list">'+a.dirs.map(f=>'<span class="file-tag">'+f+'</span>').join('')+'</div></div>':''}
+      ${a.pipeline?'<div class="detail-section"><h4>Pipeline</h4><div class="pipeline-flow">'+a.pipeline.map((s,i)=>(i?'<span class="pipeline-arrow">→</span>':'')+'<span class="pipeline-step">'+s+'</span>').join('')+'</div></div>':''}
+      ${a.trigger?'<div class="detail-section"><h4>Trigger</h4><p style="font-size:12px;color:var(--text2)">'+a.trigger+'</p></div>':''}
+    </div>`;
+  card.onclick = () => card.classList.toggle('expanded');
+  agentsGrid.appendChild(card);
+});
+
+const hbContainer = document.getElementById('hb-steps');
+heartbeatSteps.forEach(s => {
+  const el = document.createElement('div');
+  el.className = 'hb-step';
+  el.innerHTML = `<div class="hb-num">${s.num}</div><div class="hb-step-info"><div class="hb-step-name">${s.name}</div><div class="hb-step-detail">${s.detail}</div></div><div class="hb-freq">${s.freq}</div>`;
+  el.onclick = () => el.classList.toggle('expanded');
+  hbContainer.appendChild(el);
+});
+
+const header = document.getElementById('timeline-header');
+for(let h=0;h<24;h++){const el=document.createElement('div');el.className='timeline-hour';el.textContent=h===0?'12a':h<12?h+'a':h===12?'12p':(h-12)+'p';header.appendChild(el)}
+
+const timelineRows = document.getElementById('timeline-rows');
+const hbRow = document.createElement('div');
+hbRow.className = 'timeline-row';
+hbRow.innerHTML = '<div class="timeline-label" style="color:var(--green)">💓 Heartbeat</div><div class="timeline-track"><div class="hb-bar" style="left:0;width:100%;position:absolute"></div></div>';
+timelineRows.appendChild(hbRow);
+
+cronJobs.forEach(job => {
+  const row = document.createElement('div');
+  row.className = 'timeline-row';
+  const left = (job.hour/24)*100;
+  const width = Math.max((job.duration/24)*100, 0.8);
+  row.innerHTML = '<div class="timeline-label">'+(job.weekly?job.name+' <span style="color:var(--text3);font-size:10px">'+job.weekly+'</span>':job.name)+'</div><div class="timeline-track"><div class="timeline-block" style="left:'+left+'%;width:'+width+'%;background:'+job.color+'" data-tip="'+job.name+'|'+job.desc+'|Agent: '+job.agent+' · Model: '+job.model+(job.weekly?' · '+job.weekly+' only':'')+'"></div></div>';
+  timelineRows.appendChild(row);
+});
+
+function updateNowLine(){
+  const now=new Date();const pct=(now.getHours()*60+now.getMinutes())/(24*60)*100;
+  document.querySelectorAll('.timeline-track').forEach(track=>{
+    let line=track.querySelector('.timeline-now');
+    if(!line){line=document.createElement('div');line.className='timeline-now';track.appendChild(line)}
+    line.style.left=pct+'%';
   });
 }
+updateNowLine();setInterval(updateNowLine,60000);
 
-function mkLine(x1,y1,x2,y2,cls){
-  const l=document.createElementNS('http://www.w3.org/2000/svg','line');
-  l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);
-  if(cls)cls.split(' ').forEach(c=>l.classList.add(c));
-  svg.appendChild(l);
-}
+const tooltip=document.getElementById('tooltip');
+document.addEventListener('mouseover',e=>{const b=e.target.closest('.timeline-block');if(b&&b.dataset.tip){const[t,d,m]=b.dataset.tip.split('|');tooltip.innerHTML='<h4>'+t+'</h4><p>'+d+'</p><p style="margin-top:4px;color:var(--text3)">'+m+'</p>';tooltip.classList.add('show')}});
+document.addEventListener('mousemove',e=>{if(tooltip.classList.contains('show')){tooltip.style.left=Math.min(e.clientX+12,window.innerWidth-290)+'px';tooltip.style.top=(e.clientY+12)+'px'}});
+document.addEventListener('mouseout',e=>{if(e.target.closest('.timeline-block'))tooltip.classList.remove('show')});
 
-function renderBreadcrumb(){
-  let h='<span class="active" onclick="collapseAll()">Jarvis System</span>';
-  Object.keys(expanded).filter(k=>expanded[k]).forEach(id=>{
-    const n=NODES[id];if(n)h+='<span class="sep">›</span><span class="active">'+n.emoji+' '+n.name+'</span>';
-  });
-  breadcrumbEl.innerHTML=h;
-}
+const channelsGrid=document.getElementById('channels-grid');
+const agentColorMap={jarvis:'var(--accent)',brief:'var(--cyan)',career:'var(--amber)',portfolio:'var(--purple)',realestate:'var(--green)'};
+const agentEmojiMap={jarvis:'🎩',brief:'📰',career:'💼',portfolio:'🎨',realestate:'🏠'};
+channels.forEach(ch=>{
+  const card=document.createElement('div');card.className='channel-card';
+  card.innerHTML='<div class="channel-icon">'+ch.emoji+'</div><div class="channel-name">'+ch.name+'</div><div class="channel-id">ID: '+ch.id+'</div><div class="channel-agents">'+ch.agents.map(a=>'<div class="channel-agent-dot" style="background:'+agentColorMap[a]+'33;color:'+agentColorMap[a]+'" title="'+a+'">'+agentEmojiMap[a]+'</div>').join('')+'</div>';
+  channelsGrid.appendChild(card);
+});
 
-function handleClick(id){
-  if(TOP_ORDER.includes(id)&&NODES[id].children){
-    if(expanded[id]){delete expanded[id];removeChildren(id);}
-    else{Object.keys(expanded).forEach(k=>{removeChildren(k)});expanded={};expanded[id]=true;}
-    render();
-  } else {showSidebar(id);}
-}
+const servicesList=document.getElementById('services-list');
+services.forEach(s=>{
+  const row=document.createElement('div');row.className='service-row';
+  row.innerHTML='<div class="service-icon">'+s.icon+'</div><div class="service-info"><div class="service-name">'+s.name+'</div><div class="service-desc">'+s.desc+'</div></div><div class="service-agents">'+s.agents.map((a,i)=>'<span class="service-agent-pill" style="background:'+s.colors[i]+'22;color:'+s.colors[i]+'">'+a+'</span>').join('')+'</div>';
+  servicesList.appendChild(row);
+});
 
-function removeChildren(id){(NODES[id].children||[]).forEach(c=>{const el=canvas.querySelector('.node[data-id="'+c.id+'"]');if(el){el.style.opacity='0';el.style.transform='scale(.8)';setTimeout(()=>el.remove(),350);}});}
+const flowsList=document.getElementById('flows-list');
+flows.forEach(f=>{
+  const card=document.createElement('div');card.className='flow-card';
+  card.innerHTML='<div class="flow-name">'+f.name+'</div><div class="flow-steps">'+f.steps.map((s,i)=>(i?'<span class="flow-arrow">→</span>':'')+'<div class="flow-step"><span class="flow-step-icon">'+s.icon+'</span><div><div style="font-weight:600">'+s.label+'</div>'+(s.time?'<div class="flow-step-time">'+s.time+'</div>':'')+'<div style="font-size:11px;color:var(--text3)">'+s.detail+'</div></div></div>').join('')+'</div>';
+  flowsList.appendChild(card);
+});
 
-function collapseAll(){Object.keys(expanded).forEach(k=>removeChildren(k));expanded={};closeSidebar();render();}
+document.querySelectorAll('.nav-tab').forEach(tab=>{
+  tab.onclick=()=>{document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));tab.classList.add('active');document.getElementById('view-'+tab.dataset.view).classList.add('active')};
+});
 
-function showSidebar(id){
-  const isTop=TOP_ORDER.includes(id);
-  const nd=isTop?NODES[id]:findChild(id);if(!nd)return;
-  const d=nd.detail||{};
-  let h='<h2>'+nd.emoji+' '+nd.name+'</h2><div class="sub"><span class="badge '+nd.badge+'">'+nd.badgeText+'</span></div>';
-  if(d.description)h+='<div class="detail-section"><h3>Description</h3><div class="detail-item">'+d.description+'</div></div>';
-  if(d.schedule)h+='<div class="detail-section"><h3>Schedule</h3><div class="detail-item"><strong>'+d.schedule+'</strong></div></div>';
-  if(d.model)h+='<div class="detail-section"><h3>Model</h3><div class="detail-item">'+d.model+'</div></div>';
-  if(d.workspace)h+='<div class="detail-section"><h3>Workspace</h3><div class="detail-item" style="font-family:monospace;font-size:11px">'+d.workspace+'</div></div>';
-  if(d.files)h+='<div class="detail-section"><h3>Key Files</h3>'+d.files.map(f=>'<div class="detail-item" style="font-family:monospace;font-size:11px">'+f+'</div>').join('')+'</div>';
-  if(d.threadId)h+='<div class="detail-section"><h3>Thread ID</h3><div class="detail-item" style="font-family:monospace;font-size:11px">'+d.threadId+'</div></div>';
-  if(d.pipeline)h+='<div class="detail-section"><h3>Pipeline</h3><div class="detail-item">'+d.pipeline+'</div></div>';
-  if(d.url)h+='<div class="detail-section"><h3>URL</h3><div class="detail-item"><a href="'+d.url+'" style="color:#60a5fa" target="_blank">'+d.url+'</a></div></div>';
-  if(d.driveFolder)h+='<div class="detail-section"><h3>Drive Folder</h3><div class="detail-item" style="font-family:monospace;font-size:11px">'+d.driveFolder+'</div></div>';
-  document.getElementById('sidebar-content').innerHTML=h;
-  document.getElementById('sidebar').classList.add('open');
-}
-
-function closeSidebar(){document.getElementById('sidebar').classList.remove('open');}
-window.addEventListener('resize',()=>render());
-render();
+function updateClock(){const now=new Date();document.getElementById('clock').textContent=now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'America/Los_Angeles'})+' PST'}
+updateClock();setInterval(updateClock,1000);
 </script>
 </body>
 </html>
